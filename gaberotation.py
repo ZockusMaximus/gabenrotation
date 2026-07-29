@@ -2,10 +2,7 @@ from datetime import datetime, timedelta
 import json
 import os
 import random
-import re
-import urllib.parse
 from zoneinfo import ZoneInfo
-import requests
 import streamlit as st
 
 # Auto-Refresh Versuchen für den Live-Timer
@@ -19,6 +16,10 @@ except ImportError:
 DATA_FILE = "data.json"
 ADMIN_PASSWORD = "zm1234"
 GERMANY_TZ = ZoneInfo("Europe/Berlin")
+DEFAULT_IMAGE = "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&q=80"
+
+# VORGEGEBENE SPIELERLISTE FÜR DAS DROPDOWN
+ALLOWED_USERS = ["Sascha", "Alexander", "Victor", "Marcel", "Jan", "Stefan"]
 
 
 # --- DEUTSCHE ZEIT HILFSFUNKTIONEN ---
@@ -33,10 +34,8 @@ def get_next_game_night():
     weekday = now.weekday()  # 0 = Mo, 4 = Fr, 6 = So
 
     if weekday == 4 and now.hour < 20:
-        # Heute ist Freitag vor 20:00 Uhr
         days_ahead = 0
     else:
-        # Nächster Freitag
         days_ahead = (4 - weekday) % 7
         if days_ahead == 0:
             days_ahead = 7
@@ -47,38 +46,6 @@ def get_next_game_night():
     )
 
 
-# --- AUTOMATISCHER STEAM COVER SCRAPER MIT MANUAL APP-ID SUPPORT ---
-def get_steam_cover_url(game_name, app_id=None):
-    """Generiert die Cover-URL über eine optionale Steam App-ID oder sucht auf der Steam API."""
-    if app_id and str(app_id).strip().isdigit():
-        return f"https://cdn.akamai.steamstatic.com/steam/apps/{str(app_id).strip()}/header.jpg"
-
-    headers = {"User-Agent": "Mozilla/5.0"}
-    EXACT_MAP = {
-        "peak": "https://cdn.akamai.steamstatic.com/steam/apps/3527290/header.jpg",
-        "meccha chameleon": "https://cdn.akamai.steamstatic.com/steam/apps/4704690/header.jpg",
-        "repo": "https://cdn.akamai.steamstatic.com/steam/apps/2822280/header.jpg",
-        "counter-strike 2": "https://cdn.akamai.steamstatic.com/steam/apps/730/header.jpg",
-        "cs2": "https://cdn.akamai.steamstatic.com/steam/apps/730/header.jpg",
-    }
-
-    clean_name = game_name.strip().lower()
-    if clean_name in EXACT_MAP:
-        return EXACT_MAP[clean_name]
-
-    try:
-        search_url = f"https://store.steampowered.com/api/storesearch/?term={urllib.parse.quote(game_name)}&l=german&cc=DE"
-        res = requests.get(search_url, headers=headers, timeout=4).json()
-
-        if res.get("items") and len(res["items"]) > 0:
-            found_id = res["items"][0]["id"]
-            return f"https://cdn.akamai.steamstatic.com/steam/apps/{found_id}/header.jpg"
-    except Exception:
-        pass
-
-    return "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&q=80"
-
-
 # --- DATENBANK FUNKTIONEN ---
 def load_data():
     if not os.path.exists(DATA_FILE):
@@ -87,7 +54,6 @@ def load_data():
                 {
                     "id": 1,
                     "name": "Counter-Strike 2",
-                    "steam_id": "730",
                     "votes": 0,
                     "locked": False,
                     "approved": True,
@@ -96,7 +62,6 @@ def load_data():
                 {
                     "id": 2,
                     "name": "Peak",
-                    "steam_id": "3527290",
                     "votes": 0,
                     "locked": False,
                     "approved": True,
@@ -105,7 +70,6 @@ def load_data():
                 {
                     "id": 3,
                     "name": "Repo",
-                    "steam_id": "2822280",
                     "votes": 0,
                     "locked": False,
                     "approved": True,
@@ -114,7 +78,6 @@ def load_data():
                 {
                     "id": 4,
                     "name": "Meccha Chameleon",
-                    "steam_id": "4704690",
                     "votes": 0,
                     "locked": False,
                     "approved": True,
@@ -123,7 +86,6 @@ def load_data():
                 {
                     "id": 5,
                     "name": "Buckshot Roulette",
-                    "steam_id": "2835570",
                     "votes": 0,
                     "locked": False,
                     "approved": True,
@@ -132,7 +94,6 @@ def load_data():
                 {
                     "id": 6,
                     "name": "Team Fortress 2",
-                    "steam_id": "440",
                     "votes": 0,
                     "locked": False,
                     "approved": True,
@@ -141,7 +102,6 @@ def load_data():
                 {
                     "id": 7,
                     "name": "Worms W.M.D",
-                    "steam_id": "327030",
                     "votes": 0,
                     "locked": False,
                     "approved": True,
@@ -150,7 +110,6 @@ def load_data():
                 {
                     "id": 8,
                     "name": "SpeedRunners",
-                    "steam_id": "207140",
                     "votes": 0,
                     "locked": False,
                     "approved": True,
@@ -175,17 +134,13 @@ def load_data():
         for g in data.get("games", []):
             if "approved" not in g:
                 g["approved"] = True
-            if "steam_id" not in g:
-                g["steam_id"] = ""
             if (
                 "image_url" not in g
                 or not g["image_url"]
                 or g["image_url"] == "0"
                 or str(g["image_url"]).isdigit()
             ):
-                g["image_url"] = get_steam_cover_url(
-                    g["name"], g.get("steam_id")
-                )
+                g["image_url"] = DEFAULT_IMAGE
 
         if isinstance(data.get("voted_users"), list):
             data["voted_users"] = {}
@@ -304,7 +259,7 @@ def get_top_winners(data):
     return [winner_1, sorted_games[1]], False, "Eindeutiges Ergebnis"
 
 
-# --- APP STYLING (VAPORWAVE / SYNTHWAVE PALETTE) ---
+# --- APP STYLING (VAPORWAVE PALETTE) ---
 st.set_page_config(
     page_title="Zockus Maximus - Friday Game Night",
     page_icon="🎮",
@@ -326,7 +281,7 @@ st.markdown(
         font-family: 'Rajdhani', sans-serif;
     }
 
-    /* Vaporwave Neon Header Banner */
+    /* Vaporwave Banner */
     .brand-banner {
         background: linear-gradient(135deg, #ff007f 0%, #7928ca 50%, #00f0ff 100%);
         border: 2px solid #00f0ff;
@@ -356,7 +311,6 @@ st.markdown(
         text-transform: uppercase;
     }
 
-    /* Buttons Style */
     div.stButton > button {
         background: linear-gradient(90deg, #ff007f 0%, #b800ff 100%);
         color: #ffffff !important;
@@ -376,7 +330,6 @@ st.markdown(
         transform: translateY(-2px);
     }
 
-    /* Live Time Box */
     .time-header-box {
         background: rgba(22, 16, 44, 0.85);
         border: 1px solid #7928ca;
@@ -404,7 +357,6 @@ st.markdown(
         letter-spacing: 1px;
     }
 
-    /* Status Badges */
     .status-card {
         padding: 12px; border-radius: 8px; font-weight: bold; text-align: center; margin-bottom: 15px;
         font-family: 'Montserrat', sans-serif; font-size: 1rem;
@@ -422,7 +374,6 @@ st.markdown(
         box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
     }
 
-    /* Winner Box */
     .winner-box {
         background: linear-gradient(135deg, rgba(255, 0, 127, 0.15), rgba(0, 240, 255, 0.15));
         border: 2px solid #ff007f;
@@ -458,7 +409,6 @@ if menu == "🎮 Abstimmung":
         get_voting_time_status(data)
     )
 
-    # ECHTZEIT, COUNTDOWN & NEXT GAME NIGHT DATUM
     st.markdown(
         f"""
         <div class="time-header-box">
@@ -476,7 +426,7 @@ if menu == "🎮 Abstimmung":
 
     if is_manual_override:
         st.markdown(
-            f'<div class="status-card closed">⚠️ HINWEIS: Das Voting wurde vom Admin MANUELL {"GEÖFFNET" if is_open else "GESCHLOSSEN"}!</div>',
+            f'<div class="status-card closed">⚠️ HINWEIS: Das Voting wurde vom Admin MANUELL {"GEÖFFNET" if is_open else "GESCHLISTEN"}!</div>',
             unsafe_allow_html=True,
         )
 
@@ -534,11 +484,6 @@ if menu == "🎮 Abstimmung":
                     if suggested_game.strip().lower() in existing_names:
                         st.warning("Dieses Spiel steht bereits auf der Liste!")
                     else:
-                        with st.spinner("Suche nach Cover auf Steam..."):
-                            cover_img = get_steam_cover_url(
-                                suggested_game.strip()
-                            )
-
                         new_id = (
                             max([g["id"] for g in data["games"]], default=0) + 1
                         )
@@ -546,11 +491,10 @@ if menu == "🎮 Abstimmung":
                             {
                                 "id": new_id,
                                 "name": suggested_game.strip(),
-                                "steam_id": "",
                                 "votes": 0,
                                 "locked": False,
                                 "approved": False,
-                                "image_url": cover_img,
+                                "image_url": DEFAULT_IMAGE,
                             }
                         )
                         save_data(data)
@@ -560,11 +504,31 @@ if menu == "🎮 Abstimmung":
                         st.rerun()
 
         st.subheader("🎮 Spieleliste")
-        user_name = st.text_input(
-            "Dein Name / Alias (erforderlich zum Voten):",
-            placeholder="z. B. GamerX",
-        ).strip()
-        user_voted_games = data["voted_users"].get(user_name.lower(), [])
+
+        # FILTERN DER NAMEN FÜR DAS DROPDOWN (NUR NOCH NICHT GEVOTETE SPIELER ANZEIGEN)
+        already_voted_users = [
+            u.lower() for u in data.get("voted_users", {}).keys()
+        ]
+        available_users = [
+            name
+            for name in ALLOWED_USERS
+            if name.lower() not in already_voted_users
+        ]
+
+        if available_users:
+            user_name = st.selectbox(
+                "Wähle deinen Namen aus (erforderlich zum Voten):",
+                options=["-- Bitte wählen --"] + available_users,
+            )
+            if user_name == "-- Bitte wählen --":
+                user_name = ""
+        else:
+            st.info("🎉 Alle Spieler haben in dieser Woche bereits abgestimmt!")
+            user_name = ""
+
+        user_voted_games = (
+            data["voted_users"].get(user_name.lower(), []) if user_name else []
+        )
 
         public_games = [g for g in data["games"] if g.get("approved", True)]
 
@@ -573,14 +537,13 @@ if menu == "🎮 Abstimmung":
             is_locked = game["locked"] or game["id"] in data.get(
                 "last_winner_ids", []
             )
-            has_voted_this_game = game["id"] in user_voted_games
+            has_voted_this_game = (
+                game["id"] in user_voted_games if user_name else False
+            )
 
             with col_img:
                 st.image(
-                    game.get(
-                        "image_url",
-                        "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&q=80",
-                    ),
+                    game.get("image_url", DEFAULT_IMAGE),
                     use_container_width=True,
                 )
 
@@ -622,7 +585,9 @@ if menu == "🎮 Abstimmung":
                     data["vote_history"].append(log_entry)
 
                     save_data(data)
-                    st.success(f"Stimme für '{game['name']}' registriert!")
+                    st.success(
+                        f"Stimme von {user_name} für '{game['name']}' registriert!"
+                    )
                     st.rerun()
 
             st.markdown(
@@ -709,7 +674,7 @@ elif menu == "⚙️ Admin-Bereich":
                             "timestamp": get_now().strftime(
                                 "%Y-%m-%d %H:%M:%S"
                             ),
-                            "action": "Voting MANUELL GESCHLOSSEN",
+                            "action": "Voting MANUELL GESCHLISTEN",
                         }
                     )
                     save_data(data)
@@ -745,10 +710,7 @@ elif menu == "⚙️ Admin-Bereich":
                     ca_img, ca, cb, cc = st.columns([1, 2, 1, 1])
                     with ca_img:
                         st.image(
-                            un_game.get(
-                                "image_url",
-                                "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&q=80",
-                            ),
+                            un_game.get("image_url", DEFAULT_IMAGE),
                             use_container_width=True,
                         )
                     with ca:
@@ -874,7 +836,7 @@ elif menu == "⚙️ Admin-Bereich":
                 data["admin_status_logs"].append(
                     {
                         "timestamp": get_now().strftime("%Y-%m-%d %H:%M:%S"),
-                        "action": "Woche abgeschlossen -> Voting AUTOMATISCH MANUELL GESCHLOSSEN",
+                        "action": "Woche abgeschlossen -> Voting AUTOMATISCH MANUELL GESCHLISTEN",
                     }
                 )
 
@@ -883,24 +845,28 @@ elif menu == "⚙️ Admin-Bereich":
 
                 save_data(data)
                 st.success(
-                    "Woche abgeschlossen! Gewinner gesperrt & Voting auf MANUELL GESCHLOSSEN gesetzt."
+                    "Woche abgeschlossen! Gewinner gesperrt & Voting auf MANUELL GESCHLISTEN gesetzt."
                 )
                 st.rerun()
 
         with tab6:
             st.subheader("Neues Spiel direkt hinzufügen")
-            col_add1, col_add2 = st.columns([2, 1])
+            col_add1, col_add2 = st.columns([2, 2])
             with col_add1:
                 new_game = st.text_input("Spielname:", key="admin_add_game")
             with col_add2:
-                new_steam_id = st.text_input(
-                    "Steam App-ID (optional):", key="admin_add_steam_id"
+                new_img_url = st.text_input(
+                    "Bild-URL / Cover-Link (optional):",
+                    key="admin_add_img_url",
+                    placeholder="https://.../cover.jpg",
                 )
 
             if st.button("Direkt Hinzufügen (Sofort Aktiv)"):
                 if new_game.strip():
-                    cover_img = get_steam_cover_url(
-                        new_game.strip(), new_steam_id.strip()
+                    img_to_use = (
+                        new_img_url.strip()
+                        if new_img_url.strip()
+                        else DEFAULT_IMAGE
                     )
                     new_id = (
                         max([g["id"] for g in data["games"]], default=0) + 1
@@ -909,27 +875,23 @@ elif menu == "⚙️ Admin-Bereich":
                         {
                             "id": new_id,
                             "name": new_game.strip(),
-                            "steam_id": new_steam_id.strip(),
                             "votes": 0,
                             "locked": False,
                             "approved": True,
-                            "image_url": cover_img,
+                            "image_url": img_to_use,
                         }
                     )
                     save_data(data)
-                    st.success(f"'{new_game}' mit Cover hinzugefügt!")
+                    st.success(f"'{new_game}' mit Bild hinzugefügt!")
                     st.rerun()
 
             st.write("---")
-            st.subheader("Spiele verwalten & Steam App-IDs bearbeiten")
+            st.subheader("Spiele verwalten & Bild-URLs anpassen")
             for idx, game in enumerate(data["games"]):
-                c_img, c_name, c_id, c_actions = st.columns([1, 2, 1.5, 1.5])
+                c_img, c_name, c_url, c_actions = st.columns([1, 1.5, 2, 1.5])
                 with c_img:
                     st.image(
-                        game.get(
-                            "image_url",
-                            "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&q=80",
-                        ),
+                        game.get("image_url", DEFAULT_IMAGE),
                         use_container_width=True,
                     )
                 with c_name:
@@ -941,22 +903,19 @@ elif menu == "⚙️ Admin-Bereich":
                     st.write(f"**{game['name']}**")
                     st.caption(status_badge)
 
-                with c_id:
-                    current_sid = game.get("steam_id", "")
-                    new_sid = st.text_input(
-                        "Steam App-ID:",
-                        value=str(current_sid),
-                        key=f"sid_input_{game['id']}",
+                with c_url:
+                    current_url = game.get("image_url", "")
+                    new_url_val = st.text_input(
+                        "Bild-URL:",
+                        value=str(current_url),
+                        key=f"url_input_{game['id']}",
                     )
                     if st.button(
-                        "💾 ID Speichern", key=f"save_sid_{game['id']}"
+                        "💾 Bild-URL Speichern", key=f"save_url_{game['id']}"
                     ):
-                        game["steam_id"] = new_sid.strip()
-                        game["image_url"] = get_steam_cover_url(
-                            game["name"], new_sid.strip()
-                        )
+                        game["image_url"] = new_url_val.strip()
                         save_data(data)
-                        st.success("Steam Cover aktualisiert!")
+                        st.success("Bild-URL aktualisiert!")
                         st.rerun()
 
                 with c_actions:
