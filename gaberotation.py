@@ -17,17 +17,52 @@ ADMIN_PASSWORD = "zm1234"
 
 
 # --- DATENBANK FUNKTIONEN ---
-# --- DATENBANK FUNKTIONEN ---
 def load_data():
     if not os.path.exists(DATA_FILE):
         default_data = {
             "games": [
-                {"id": 1, "name": "Beispiel 1", "votes": 0, "locked": False, "approved": True},
-                {"id": 2, "name": "Beispiel 2", "votes": 0, "locked": False, "approved": True},
-                {"id": 3, "name": "Beispiel 3", "votes": 0, "locked": False, "approved": True},
-                {"id": 4, "name": "Beispiel 4", "votes": 0, "locked": False, "approved": True},
-                {"id": 5, "name": "Beispiel 5", "votes": 0, "locked": False, "approved": True},
-                {"id": 6, "name": "Beispiel 6", "votes": 0, "locked": False, "approved": True},
+                {
+                    "id": 1,
+                    "name": "Beispiel 1",
+                    "votes": 0,
+                    "locked": False,
+                    "approved": True,
+                },
+                {
+                    "id": 2,
+                    "name": "Beispiel 2",
+                    "votes": 0,
+                    "locked": False,
+                    "approved": True,
+                },
+                {
+                    "id": 3,
+                    "name": "Beispiel 3",
+                    "votes": 0,
+                    "locked": False,
+                    "approved": True,
+                },
+                {
+                    "id": 4,
+                    "name": "Beispiel 4",
+                    "votes": 0,
+                    "locked": False,
+                    "approved": True,
+                },
+                {
+                    "id": 5,
+                    "name": "Beispiel 5",
+                    "votes": 0,
+                    "locked": False,
+                    "approved": True,
+                },
+                {
+                    "id": 6,
+                    "name": "Beispiel 6",
+                    "votes": 0,
+                    "locked": False,
+                    "approved": True,
+                },
             ],
             "voted_users": {},
             "last_winner_ids": [],
@@ -43,39 +78,39 @@ def load_data():
 
     with open(DATA_FILE, "r", encoding="utf-8") as f:
         data = json.load(f)
-        
-        # FIX: Automatische Konvertierung, falls voted_users noch eine Liste aus Version 1 ist
+
+        # 1. Konvertierung falls voted_users eine Liste aus Version 1 ist
         if isinstance(data.get("voted_users"), list):
             data["voted_users"] = {}
-            save_data(data)
 
-        # Strukturabsicherungen
+        # 2. Alle fehlenden Keys automatisch absichern (Verhindert KeyError!)
         if "manual_status_override" not in data:
             data["manual_status_override"] = "AUTO"
-        if "admin_status_logs" not in data:
+        if "vote_history" not in data or not isinstance(
+            data.get("vote_history"), list
+        ):
+            data["vote_history"] = []
+        if "randomizer_logs" not in data or not isinstance(
+            data.get("randomizer_logs"), list
+        ):
+            data["randomizer_logs"] = []
+        if "admin_status_logs" not in data or not isinstance(
+            data.get("admin_status_logs"), list
+        ):
             data["admin_status_logs"] = []
-        if "weekly_winner_history" not in data:
+        if "weekly_winner_history" not in data or not isinstance(
+            data.get("weekly_winner_history"), list
+        ):
             data["weekly_winner_history"] = []
+        if "override_winner_ids" not in data:
+            data["override_winner_ids"] = []
 
-        # Abwärtskompatibilität für approved-Flag
+        # 3. Abwärtskompatibilität für approved-Flag
         for g in data.get("games", []):
             if "approved" not in g:
                 g["approved"] = True
 
-        return data
-        # Strukturabsicherungen & Migrationen
-        if "manual_status_override" not in data:
-            data["manual_status_override"] = "AUTO"
-        if "admin_status_logs" not in data:
-            data["admin_status_logs"] = []
-        if "weekly_winner_history" not in data:
-            data["weekly_winner_history"] = []
-
-        # Abwärtskompatibilität für approved-Flag
-        for g in data["games"]:
-            if "approved" not in g:
-                g["approved"] = True
-
+        save_data(data)
         return data
 
 
@@ -132,7 +167,6 @@ def format_timedelta(td):
 
 # --- GEWINNER ERMITTLUNG ---
 def get_top_winners(data):
-    # Nur freigegebene Spiele beachten
     approved_games = [g for g in data["games"] if g.get("approved", True)]
 
     if data.get("override_winner_ids"):
@@ -229,7 +263,6 @@ if menu == "🎮 Abstimmung":
         get_voting_time_status(data)
     )
 
-    # ECHTZEIT & LIVE-TIMER
     st.markdown(
         f"""
         <div class="time-header-box">
@@ -242,14 +275,12 @@ if menu == "🎮 Abstimmung":
         unsafe_allow_html=True,
     )
 
-    # Manuelles Override Banner
     if is_manual_override:
         st.markdown(
             f'<div class="override-alert">⚠️ HINWEIS: Das Voting wurde manuell vom Admin {"GEÖFFNET" if is_open else "GESCHLOSSEN"}!</div>',
             unsafe_allow_html=True,
         )
 
-    # Status Banner
     status_class = "open" if is_open else "closed"
     status_text = (
         "🟢 Voting ist aktuell GEÖFFNET!"
@@ -292,7 +323,6 @@ if menu == "🎮 Abstimmung":
 
         st.write("---")
 
-        # 2. VORSCHLAGS-SYSTEM (Benötigt Admin Freigabe)
         with st.expander("➕ Neues Spiel vorschlagen", expanded=False):
             suggested_game = st.text_input(
                 "Spielname eingeben:",
@@ -308,7 +338,6 @@ if menu == "🎮 Abstimmung":
                         new_id = (
                             max([g["id"] for g in data["games"]], default=0) + 1
                         )
-                        # Spiel wird initial mit approved=False angelegt
                         data["games"].append(
                             {
                                 "id": new_id,
@@ -331,7 +360,6 @@ if menu == "🎮 Abstimmung":
         ).strip()
         user_voted_games = data["voted_users"].get(user_name.lower(), [])
 
-        # Nur Spiele anzeigen, die freigegeben wurden (approved == True)
         public_games = [g for g in data["games"] if g.get("approved", True)]
 
         for game in public_games:
@@ -433,7 +461,6 @@ elif menu == "⚙️ Admin-Bereich":
             ]
         )
 
-        # TAB 1: STATUS OVERRIDE
         with tab1:
             st.subheader("🔓 Manuelles Öffnen / Schließen des Votings")
             current_status = data.get("manual_status_override", "AUTO")
@@ -486,7 +513,6 @@ elif menu == "⚙️ Admin-Bereich":
                     st.info("Automatischer Zeitplan wiederhergestellt.")
                     st.rerun()
 
-        # TAB 2: VORSCHLÄGE FREIGEBEN
         with tab2:
             st.subheader("📩 Eingereichte Spielvorschläge")
             unapproved_games = [
@@ -522,7 +548,6 @@ elif menu == "⚙️ Admin-Bereich":
             else:
                 st.info("Keine ausstehenden Vorschläge vorhanden.")
 
-        # TAB 3: LOGS
         with tab3:
             st.subheader("📋 Registrierter Voting-Index")
             if data["vote_history"]:
@@ -547,7 +572,6 @@ elif menu == "⚙️ Admin-Bereich":
                 for r_log in reversed(data["randomizer_logs"]):
                     st.warning(f"**[{r_log['timestamp']}]:** {r_log['message']}")
 
-        # TAB 4: GEWINNER OVERRIDE
         with tab4:
             st.subheader("👑 Gewinner manuell festlegen")
             game_options = {
@@ -576,7 +600,6 @@ elif menu == "⚙️ Admin-Bereich":
                 st.success("Gespeichert!")
                 st.rerun()
 
-        # TAB 5: WOCHE ABSCHLIESSEN (Setzt Status automatisch auf MANUELL GESCHLOSSEN)
         with tab5:
             st.subheader("🔄 Woche Abschließen & Historie Speichern")
             st.write(
@@ -617,12 +640,10 @@ elif menu == "⚙️ Admin-Bereich":
                         }
                     )
 
-                # 1. Gewinner festlegen & sperren
                 data["last_winner_ids"] = winner_ids
                 data["override_winner_ids"] = []
                 data["voted_users"] = {}
 
-                # 2. STATUS AUTOMATISCH AUF CLOSED SETZEN (Sperre für Main-Site)
                 data["manual_status_override"] = "CLOSED"
                 data["admin_status_logs"].append(
                     {
@@ -633,7 +654,6 @@ elif menu == "⚙️ Admin-Bereich":
                     }
                 )
 
-                # 3. Stimmen zurücksetzen
                 for g in data["games"]:
                     g["votes"] = 0
 
@@ -643,7 +663,6 @@ elif menu == "⚙️ Admin-Bereich":
                 )
                 st.rerun()
 
-        # TAB 6: SPIELE VERWALTEN
         with tab6:
             st.subheader("Neues Spiel direkt hinzufügen")
             new_game = st.text_input("Spielname:", key="admin_add_game")
@@ -658,7 +677,7 @@ elif menu == "⚙️ Admin-Bereich":
                             "name": new_game.strip(),
                             "votes": 0,
                             "locked": False,
-                            "approved": True,  # Vom Admin direkt freigegeben
+                            "approved": True,
                         }
                     )
                     save_data(data)
