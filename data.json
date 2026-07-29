@@ -1,0 +1,50 @@
+{
+    "games": [
+        {
+            "id": 1,
+            "name": "Beispiel 1",
+            "votes": 1,
+            "locked": false
+        },
+        {
+            "id": 2,
+            "name": "Beispiel 2",
+            "votes": 0,
+            "locked": false
+        },
+        {
+            "id": 3,
+            "name": "Beispiel 3",
+            "votes": 0,
+            "locked": false
+        },
+        {
+            "id": 4,
+            "name": "Beispiel 4",
+            "votes": 0,
+            "locked": false
+        },
+        {
+            "id": 5,
+            "name": "Beispiel 5",
+            "votes": 0,
+            "locked": false
+        },
+        {
+            "id": 6,
+            "name": "Beispiel 6",
+            "votes": 0,
+            "locked": false
+        },
+        {
+            "id": 7,
+            "name": "Titty",
+            "votes": 0,
+            "locked": false
+        }
+    ],
+    "voted_users": [
+        "Stefan"
+    ],
+    "last_winner_ids": []
+}
