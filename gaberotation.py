@@ -17,57 +17,22 @@ ADMIN_PASSWORD = "zm1234"
 
 
 # --- DATENBANK FUNKTIONEN ---
+# --- DATENBANK FUNKTIONEN ---
 def load_data():
     if not os.path.exists(DATA_FILE):
         default_data = {
             "games": [
-                {
-                    "id": 1,
-                    "name": "Beispiel 1",
-                    "votes": 0,
-                    "locked": False,
-                    "approved": True,
-                },
-                {
-                    "id": 2,
-                    "name": "Beispiel 2",
-                    "votes": 0,
-                    "locked": False,
-                    "approved": True,
-                },
-                {
-                    "id": 3,
-                    "name": "Beispiel 3",
-                    "votes": 0,
-                    "locked": False,
-                    "approved": True,
-                },
-                {
-                    "id": 4,
-                    "name": "Beispiel 4",
-                    "votes": 0,
-                    "locked": False,
-                    "approved": True,
-                },
-                {
-                    "id": 5,
-                    "name": "Beispiel 5",
-                    "votes": 0,
-                    "locked": False,
-                    "approved": True,
-                },
-                {
-                    "id": 6,
-                    "name": "Beispiel 6",
-                    "votes": 0,
-                    "locked": False,
-                    "approved": True,
-                },
+                {"id": 1, "name": "Beispiel 1", "votes": 0, "locked": False, "approved": True},
+                {"id": 2, "name": "Beispiel 2", "votes": 0, "locked": False, "approved": True},
+                {"id": 3, "name": "Beispiel 3", "votes": 0, "locked": False, "approved": True},
+                {"id": 4, "name": "Beispiel 4", "votes": 0, "locked": False, "approved": True},
+                {"id": 5, "name": "Beispiel 5", "votes": 0, "locked": False, "approved": True},
+                {"id": 6, "name": "Beispiel 6", "votes": 0, "locked": False, "approved": True},
             ],
             "voted_users": {},
             "last_winner_ids": [],
             "override_winner_ids": [],
-            "manual_status_override": "AUTO",  # "AUTO", "OPEN", "CLOSED"
+            "manual_status_override": "AUTO",
             "vote_history": [],
             "randomizer_logs": [],
             "admin_status_logs": [],
@@ -78,6 +43,26 @@ def load_data():
 
     with open(DATA_FILE, "r", encoding="utf-8") as f:
         data = json.load(f)
+        
+        # FIX: Automatische Konvertierung, falls voted_users noch eine Liste aus Version 1 ist
+        if isinstance(data.get("voted_users"), list):
+            data["voted_users"] = {}
+            save_data(data)
+
+        # Strukturabsicherungen
+        if "manual_status_override" not in data:
+            data["manual_status_override"] = "AUTO"
+        if "admin_status_logs" not in data:
+            data["admin_status_logs"] = []
+        if "weekly_winner_history" not in data:
+            data["weekly_winner_history"] = []
+
+        # Abwärtskompatibilität für approved-Flag
+        for g in data.get("games", []):
+            if "approved" not in g:
+                g["approved"] = True
+
+        return data
         # Strukturabsicherungen & Migrationen
         if "manual_status_override" not in data:
             data["manual_status_override"] = "AUTO"
