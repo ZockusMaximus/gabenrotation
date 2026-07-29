@@ -2,10 +2,13 @@ from datetime import datetime, timedelta
 import json
 import os
 import random
+import re
+import urllib.parse
 from zoneinfo import ZoneInfo
+import requests
 import streamlit as st
 
-# Auto-Refresh Versuchen
+# Auto-Refresh Versuchen für den Live-Timer
 try:
     from streamlit_autorun import autorun
 
@@ -24,6 +27,53 @@ def get_now():
     return datetime.now(GERMANY_TZ)
 
 
+# --- AUTOMATISCHER WIKIPEDIA COVER SCRAPER (OHNE API KEY) ---
+def get_wikipedia_cover_url(game_name):
+    """Sucht auf der deutschen und englischen Wikipedia nach dem Spiel-Cover/Logo."""
+    headers = {"User-Agent": "GamingVotingBot/2.0 (contact@example.com)"}
+
+    # Versuch 1: Deutsche Wikipedia
+    for lang in ["de", "en"]:
+        try:
+            search_url = f"https://{lang}.wikipedia.org/w/api.php"
+            # 1. Nach Artikel suchen
+            search_params = {
+                "action": "query",
+                "list": "search",
+                "srsearch": f"{game_name} video game",
+                "format": "json",
+            }
+            res = requests.get(
+                search_url, params=search_params, headers=headers, timeout=4
+            ).json()
+            search_results = res.get("query", {}).get("search", [])
+
+            if search_results:
+                page_title = search_results[0]["title"]
+
+                # 2. Thumbnail des Artikels abrufen
+                img_params = {
+                    "action": "query",
+                    "titles": page_title,
+                    "prop": "pageimages",
+                    "pithumbsize": 500,
+                    "format": "json",
+                }
+                img_res = requests.get(
+                    search_url, params=img_params, headers=headers, timeout=4
+                ).json()
+                pages = img_res.get("query", {}).get("pages", {})
+
+                for page_id, page_data in pages.items():
+                    if "thumbnail" in page_data:
+                        return page_data["thumbnail"]["source"]
+        except Exception:
+            continue
+
+    # Fallback-Bild, falls Wikipedia kein Bild findet (Stylisches Neon-Icon)
+    return "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&q=80"
+
+
 # --- DATENBANK FUNKTIONEN ---
 def load_data():
     if not os.path.exists(DATA_FILE):
@@ -31,45 +81,27 @@ def load_data():
             "games": [
                 {
                     "id": 1,
-                    "name": "Beispiel 1",
+                    "name": "GTA Vice City",
                     "votes": 0,
                     "locked": False,
                     "approved": True,
+                    "image_url": "https://upload.wikimedia.org/wikipedia/en/c/ce/Vice-city-cover.jpg",
                 },
                 {
                     "id": 2,
-                    "name": "Beispiel 2",
+                    "name": "Cyberpunk 2077",
                     "votes": 0,
                     "locked": False,
                     "approved": True,
+                    "image_url": "https://upload.wikimedia.org/wikipedia/en/9/9f/Cyberpunk_2077_box_art.jpg",
                 },
                 {
                     "id": 3,
-                    "name": "Beispiel 3",
+                    "name": "Valheim",
                     "votes": 0,
                     "locked": False,
                     "approved": True,
-                },
-                {
-                    "id": 4,
-                    "name": "Beispiel 4",
-                    "votes": 0,
-                    "locked": False,
-                    "approved": True,
-                },
-                {
-                    "id": 5,
-                    "name": "Beispiel 5",
-                    "votes": 0,
-                    "locked": False,
-                    "approved": True,
-                },
-                {
-                    "id": 6,
-                    "name": "Beispiel 6",
-                    "votes": 0,
-                    "locked": False,
-                    "approved": True,
+                    "image_url": "https://upload.wikimedia.org/wikipedia/en/0/06/Valheim_logo.jpg",
                 },
             ],
             "voted_users": {},
@@ -111,9 +143,12 @@ def load_data():
         if "override_winner_ids" not in data:
             data["override_winner_ids"] = []
 
+        # Abwärtskompatibilität für Cover-URLs & Approval
         for g in data.get("games", []):
             if "approved" not in g:
                 g["approved"] = True
+            if "image_url" not in g or not g["image_url"]:
+                g["image_url"] = get_wikipedia_cover_url(g["name"])
 
         save_data(data)
         return data
@@ -124,10 +159,10 @@ def save_data(data):
         json.dump(data, f, ensure_ascii=False, indent=4)
 
 
-# --- ZEIT & SCHLIESS-LOGIK (DEUTSCHE ZEIT) ---
+# --- ZEIT & SCHLIESS-LOGIK ---
 def get_voting_time_status(data):
     now = get_now()
-    weekday = now.weekday()  # 0 = Mo, 2 = Mi, 5 = Sa
+    weekday = now.weekday()
     hour = now.hour
 
     override = data.get("manual_status_override", "AUTO")
@@ -209,10 +244,10 @@ def get_top_winners(data):
     return [winner_1, sorted_games[1]], False, "Eindeutiges Ergebnis"
 
 
-# --- APP STYLING ---
+# --- APP STYLING (VAPORWAVE / SYNTHWAVE / CYBERPUNK THEME) ---
 st.set_page_config(
-    page_title="Gaming Voting",
-    page_icon="🎮",
+    page_title="Gaming Voting - Vaporwave Edition",
+    page_icon="⚡",
     layout="centered",
     initial_sidebar_state="collapsed",
 )
@@ -223,31 +258,119 @@ if AUTORUN_AVAILABLE:
 st.markdown(
     """
     <style>
-    .stApp { background-color: #0f111a; color: #ffffff; }
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Rajdhani:wght@600;700&display=swap');
+
+    /* Global Dark Cyber Background */
+    .stApp {
+        background: radial-gradient(circle at 50% 10%, #1e1035 0%, #0d0b1e 70%);
+        color: #f1f5f9;
+        font-family: 'Rajdhani', sans-serif;
+    }
+
+    /* Synthwave Header Banner */
+    .synth-banner {
+        background: linear-gradient(135deg, #ff007f 0%, #7928ca 50%, #00f0ff 100%);
+        border: 2px solid #00f0ff;
+        border-radius: 16px;
+        padding: 25px 15px;
+        text-align: center;
+        box-shadow: 0 0 25px rgba(255, 0, 127, 0.45), inset 0 0 15px rgba(0, 240, 255, 0.3);
+        margin-bottom: 25px;
+    }
+    .synth-title {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 2.2rem;
+        font-weight: 900;
+        color: #ffffff;
+        text-shadow: 0 0 12px #ff007f, 0 0 25px #00f0ff;
+        letter-spacing: 2px;
+        margin: 0;
+        text-transform: uppercase;
+    }
+    .synth-subtitle {
+        color: #e2e8f0;
+        font-size: 1.1rem;
+        font-weight: 700;
+        margin-top: 5px;
+        text-shadow: 0 0 8px rgba(0,0,0,0.8);
+        letter-spacing: 1px;
+    }
+
+    /* Buttons Style */
     div.stButton > button {
-        background-color: #7289da; color: white; font-weight: bold;
-        border-radius: 8px; border: none; width: 100%; padding: 8px;
+        background: linear-gradient(90deg, #ff007f 0%, #b800ff 100%);
+        color: #ffffff !important;
+        font-family: 'Orbitron', sans-serif;
+        font-weight: 700;
+        border-radius: 8px;
+        border: 1px solid #ff77d6;
+        box-shadow: 0 0 10px rgba(255, 0, 127, 0.3);
+        transition: all 0.2s ease-in-out;
+        width: 100%;
+        padding: 8px;
     }
-    div.stButton > button:hover { background-color: #5b6eae; color: white; }
+    div.stButton > button:hover {
+        background: linear-gradient(90deg, #00f0ff 0%, #ff007f 100%);
+        box-shadow: 0 0 20px #00f0ff;
+        border-color: #ffffff;
+        transform: translateY(-2px);
+    }
+
+    /* Live Time Box */
     .time-header-box {
-        background: #181b26; border: 1px solid #2a2f45; border-radius: 10px;
-        padding: 15px; text-align: center; margin-bottom: 20px;
+        background: rgba(22, 16, 44, 0.85);
+        border: 1px solid #7928ca;
+        border-radius: 12px;
+        padding: 15px;
+        text-align: center;
+        margin-bottom: 20px;
+        box-shadow: 0 0 15px rgba(121, 40, 202, 0.25);
     }
-    .clock-text { font-size: 1.1rem; color: #8e9297; margin-bottom: 5px; }
-    .countdown-display { font-size: 1.8rem; font-weight: 800; color: #7289da; letter-spacing: 1px; }
+    .clock-text { font-size: 1.1rem; color: #cbd5e1; margin-bottom: 5px; }
+    .countdown-display { 
+        font-family: 'Orbitron', sans-serif;
+        font-size: 2rem; 
+        font-weight: 800; 
+        color: #00f0ff; 
+        text-shadow: 0 0 10px #00f0ff;
+    }
+
+    /* Status Badges */
     .status-card {
-        padding: 10px; border-radius: 8px; font-weight: bold; text-align: center; margin-bottom: 15px;
+        padding: 12px; border-radius: 8px; font-weight: bold; text-align: center; margin-bottom: 15px;
+        font-family: 'Orbitron', sans-serif; font-size: 1rem;
     }
-    .open { background-color: #1b382b; border: 1px solid #2ecc71; color: #2ecc71; }
-    .closed { background-color: #381b1b; border: 1px solid #e74c3c; color: #e74c3c; }
-    .override-alert {
-        background-color: #3d2b00; border: 2px solid #f39c12; color: #f1c40f;
-        padding: 10px; border-radius: 8px; font-weight: bold; text-align: center; margin-bottom: 15px;
+    .open { 
+        background-color: rgba(16, 185, 129, 0.15); 
+        border: 1px solid #10b981; 
+        color: #34d399; 
+        box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
     }
+    .closed { 
+        background-color: rgba(239, 68, 68, 0.15); 
+        border: 1px solid #ef4444; 
+        color: #f87171; 
+        box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+    }
+
+    /* Winner Box */
     .winner-box {
-        background: linear-gradient(135deg, #2c2505, #1e2230);
-        border: 2px solid #f1c40f; padding: 15px; border-radius: 10px;
+        background: linear-gradient(135deg, rgba(255, 0, 127, 0.15), rgba(0, 240, 255, 0.15));
+        border: 2px solid #ff007f;
+        padding: 15px; border-radius: 12px;
         text-align: center; margin-bottom: 20px;
+        box-shadow: 0 0 20px rgba(255, 0, 127, 0.3);
+    }
+
+    /* Game List Row Box */
+    .game-card {
+        background: rgba(26, 20, 50, 0.7);
+        border: 1px solid #3b2d6b;
+        border-radius: 10px;
+        padding: 10px;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
     }
     </style>
 """,
@@ -261,19 +384,29 @@ menu = st.sidebar.radio("Navigation", ["🎮 Abstimmung", "⚙️ Admin-Bereich"
 # SEITE 1: ABSTIMMUNG
 # ==========================================
 if menu == "🎮 Abstimmung":
-    st.title("🎮 Freitag Gaming Voting")
+    # 80s VAPORWAVE HERO BANNER
+    st.markdown(
+        """
+        <div class="synth-banner">
+            <h1 class="synth-title">⚡ FREITAG GAMING VOTING ⚡</h1>
+            <div class="synth-subtitle">VICE CITY & CYBERPUNK EDITION</div>
+        </div>
+    """,
+        unsafe_allow_html=True,
+    )
 
     now = get_now()
     is_open, time_left, countdown_label, is_manual_override = (
         get_voting_time_status(data)
     )
 
+    # ECHTZEIT & COUNTDOWN
     st.markdown(
         f"""
         <div class="time-header-box">
             <div class="clock-text">📅 Aktuelle Zeit (DE): <strong>{now.strftime("%A, %d.%m.%Y - %H:%M:%S")} Uhr</strong></div>
-            <hr style="border-color:#2a2f45; margin:8px 0;">
-            <div style="font-size:0.9rem; color:#aaa;">{countdown_label}</div>
+            <hr style="border-color:#3b2d6b; margin:8px 0;">
+            <div style="font-size:0.9rem; color:#a78bfa;">{countdown_label}</div>
             <div class="countdown-display">{"--" if is_manual_override else format_timedelta(time_left)}</div>
         </div>
     """,
@@ -282,15 +415,15 @@ if menu == "🎮 Abstimmung":
 
     if is_manual_override:
         st.markdown(
-            f'<div class="override-alert">⚠️ HINWEIS: Das Voting wurde manuell vom Admin {"GEÖFFNET" if is_open else "GESCHLOSSEN"}!</div>',
+            f'<div class="status-card closed">⚠️ HINWEIS: Das Voting wurde vom Admin MANUELL {"GEÖFFNET" if is_open else "GESCHLOSSEN"}!</div>',
             unsafe_allow_html=True,
         )
 
     status_class = "open" if is_open else "closed"
     status_text = (
-        "🟢 Voting ist aktuell GEÖFFNET!"
+        "🟢 VOTING IST AKTUELL GEÖFFNET!"
         if is_open
-        else "🔴 Voting ist aktuell GESCHLOSSEN (Nächstes Voting ab Samstag 01:00 Uhr)."
+        else "🔴 VOTING IST AKTUELL GESCHLOSSEN (Start: Samstag 01:00 Uhr)"
     )
     st.markdown(
         f'<div class="status-card {status_class}">{status_text}</div>',
@@ -307,7 +440,7 @@ if menu == "🎮 Abstimmung":
             st.markdown(
                 """
                 <div class="winner-box">
-                    <h3 style="color:#f1c40f; margin:0;">🏆 Aktuelle Top-2 Favoriten</h3>
+                    <h3 style="color:#00f0ff; margin:0; font-family:'Orbitron'; font-weight:800;">🏆 AKTUELLE TOP-2 FAVORITEN</h3>
                 </div>
             """,
                 unsafe_allow_html=True,
@@ -328,6 +461,7 @@ if menu == "🎮 Abstimmung":
 
         st.write("---")
 
+        # SPIEL VORSCHLAGEN BEREICH
         with st.expander("➕ Neues Spiel vorschlagen", expanded=False):
             suggested_game = st.text_input(
                 "Spielname eingeben:",
@@ -340,6 +474,13 @@ if menu == "🎮 Abstimmung":
                     if suggested_game.strip().lower() in existing_names:
                         st.warning("Dieses Spiel steht bereits auf der Liste!")
                     else:
+                        with st.spinner(
+                            "Suche nach Cover-Bild auf Wikipedia..."
+                        ):
+                            cover_img = get_wikipedia_cover_url(
+                                suggested_game.strip()
+                            )
+
                         new_id = (
                             max([g["id"] for g in data["games"]], default=0) + 1
                         )
@@ -349,16 +490,17 @@ if menu == "🎮 Abstimmung":
                                 "name": suggested_game.strip(),
                                 "votes": 0,
                                 "locked": False,
-                                "approved": False,
+                                "approved": False,  # Benötigt Admin Freigabe
+                                "image_url": cover_img,
                             }
                         )
                         save_data(data)
                         st.info(
-                            f"Vorschlag '{suggested_game.strip()}' eingereicht! Ein Admin muss das Spiel noch freigeben."
+                            f"Vorschlag '{suggested_game.strip()}' mit Cover eingereicht! Wartet auf Admin-Freigabe."
                         )
                         st.rerun()
 
-        st.subheader("Spieleliste")
+        st.subheader("🎮 Spieleliste")
         user_name = st.text_input(
             "Dein Name / Alias (erforderlich zum Voten):",
             placeholder="z. B. GamerX",
@@ -367,21 +509,32 @@ if menu == "🎮 Abstimmung":
 
         public_games = [g for g in data["games"] if g.get("approved", True)]
 
+        # SPIELELISTE RENDERN (MIT WIKIPEDIA COVER THUMBNAILS)
         for game in public_games:
-            col1, col2, col3 = st.columns([3, 1, 2])
+            col_img, col1, col2, col3 = st.columns([1.2, 3, 1, 2])
             is_locked = game["locked"] or game["id"] in data.get(
                 "last_winner_ids", []
             )
             has_voted_this_game = game["id"] in user_voted_games
 
+            with col_img:
+                # Thumbnail anzeigen
+                st.image(
+                    game.get(
+                        "image_url",
+                        "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&q=80",
+                    ),
+                    use_container_width=True,
+                )
+
             with col1:
                 if is_locked:
                     st.markdown(f"**{game['name']}** 🚫 *(Vorwoche Gewinner)*")
                 else:
-                    st.markdown(f"**{game['name']}**")
+                    st.markdown(f"### {game['name']}")
 
             with col2:
-                st.caption(f"📊 {game['votes']} Stimmen")
+                st.caption(f"📊 **{game['votes']}** Stimmen")
 
             with col3:
                 button_disabled = (
@@ -390,7 +543,7 @@ if menu == "🎮 Abstimmung":
                     or not user_name
                     or has_voted_this_game
                 )
-                button_label = "Gevotet ✅" if has_voted_this_game else "Voten"
+                button_label = "Gevotet ✅" if has_voted_this_game else "Voten ⚡"
 
                 if st.button(
                     button_label,
@@ -415,12 +568,17 @@ if menu == "🎮 Abstimmung":
                     st.success(f"Stimme für '{game['name']}' registriert!")
                     st.rerun()
 
+            st.markdown(
+                '<hr style="border-color:#2a244d; margin:5px 0 15px 0;">',
+                unsafe_allow_html=True,
+            )
+
     with tab_history:
         st.subheader("📜 Gewinner vergangener Wochen")
         if data.get("weekly_winner_history"):
             for h in reversed(data["weekly_winner_history"]):
                 with st.expander(
-                    f"🗓️ Kalenderwoche {h['kw']} ({h['date']}) — Gewinner: {', '.join(h['winners'])}"
+                    f"🗓️ KW {h['kw']} ({h['date']}) — Gewinner: {', '.join(h['winners'])}"
                 ):
                     for w_name in h["winners"]:
                         voters = h["voters"].get(w_name, [])
@@ -527,7 +685,15 @@ elif menu == "⚙️ Admin-Bereich":
                     f"Es liegen **{len(unapproved_games)}** Vorschlag/Vorschläge vor:"
                 )
                 for un_game in unapproved_games:
-                    ca, cb, cc = st.columns([3, 1, 1])
+                    ca_img, ca, cb, cc = st.columns([1, 2, 1, 1])
+                    with ca_img:
+                        st.image(
+                            un_game.get(
+                                "image_url",
+                                "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&q=80",
+                            ),
+                            use_container_width=True,
+                        )
                     with ca:
                         st.write(f"🎮 **{un_game['name']}**")
                     with cb:
@@ -669,6 +835,9 @@ elif menu == "⚙️ Admin-Bereich":
             new_game = st.text_input("Spielname:", key="admin_add_game")
             if st.button("Direkt Hinzufügen (Sofort Aktiv)"):
                 if new_game.strip():
+                    with st.spinner("Suche nach Wikipedia Cover..."):
+                        cover_img = get_wikipedia_cover_url(new_game.strip())
+
                     new_id = (
                         max([g["id"] for g in data["games"]], default=0) + 1
                     )
@@ -679,15 +848,25 @@ elif menu == "⚙️ Admin-Bereich":
                             "votes": 0,
                             "locked": False,
                             "approved": True,
+                            "image_url": cover_img,
                         }
                     )
                     save_data(data)
-                    st.success(f"'{new_game}' hinzugefügt!")
+                    st.success(f"'{new_game}' mit Cover hinzugefügt!")
                     st.rerun()
 
             st.write("---")
+            st.subheader("Spiele verwalten & Cover anpassen")
             for idx, game in enumerate(data["games"]):
-                c1, c2, c3 = st.columns([2, 1, 1])
+                c_img, c1, c2, c3 = st.columns([1, 2, 1, 1])
+                with c_img:
+                    st.image(
+                        game.get(
+                            "image_url",
+                            "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&q=80",
+                        ),
+                        use_container_width=True,
+                    )
                 with c1:
                     status_badge = (
                         "🟢 Freigegeben"
@@ -695,6 +874,16 @@ elif menu == "⚙️ Admin-Bereich":
                         else "🟠 Wartet auf Freigabe"
                     )
                     st.write(f"**{game['name']}** ({status_badge})")
+                    if st.button(
+                        "🌐 Cover von Wikipedia neu laden",
+                        key=f"reload_img_{game['id']}",
+                    ):
+                        game["image_url"] = get_wikipedia_cover_url(
+                            game["name"]
+                        )
+                        save_data(data)
+                        st.success("Cover aktualisiert!")
+                        st.rerun()
                 with c2:
                     lock_status = game["locked"] or game["id"] in data.get(
                         "last_winner_ids", []
