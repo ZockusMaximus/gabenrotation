@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 import json
 import os
 import random
+from zoneinfo import ZoneInfo
 import streamlit as st
 
 # Auto-Refresh Versuchen
@@ -14,6 +15,13 @@ except ImportError:
 
 DATA_FILE = "data.json"
 ADMIN_PASSWORD = "zm1234"
+GERMANY_TZ = ZoneInfo("Europe/Berlin")
+
+
+# --- DEUTSCHE ZEIT HILFSFUNKTION ---
+def get_now():
+    """Gibt die aktuelle Uhrzeit in der deutschen Zeitzone (Europe/Berlin) zurück."""
+    return datetime.now(GERMANY_TZ)
 
 
 # --- DATENBANK FUNKTIONEN ---
@@ -79,11 +87,9 @@ def load_data():
     with open(DATA_FILE, "r", encoding="utf-8") as f:
         data = json.load(f)
 
-        # 1. Konvertierung falls voted_users eine Liste aus Version 1 ist
         if isinstance(data.get("voted_users"), list):
             data["voted_users"] = {}
 
-        # 2. Alle fehlenden Keys automatisch absichern (Verhindert KeyError!)
         if "manual_status_override" not in data:
             data["manual_status_override"] = "AUTO"
         if "vote_history" not in data or not isinstance(
@@ -105,7 +111,6 @@ def load_data():
         if "override_winner_ids" not in data:
             data["override_winner_ids"] = []
 
-        # 3. Abwärtskompatibilität für approved-Flag
         for g in data.get("games", []):
             if "approved" not in g:
                 g["approved"] = True
@@ -119,9 +124,9 @@ def save_data(data):
         json.dump(data, f, ensure_ascii=False, indent=4)
 
 
-# --- ZEIT & SCHLIESS-LOGIK ---
+# --- ZEIT & SCHLIESS-LOGIK (DEUTSCHE ZEIT) ---
 def get_voting_time_status(data):
-    now = datetime.now()
+    now = get_now()
     weekday = now.weekday()  # 0 = Mo, 2 = Mi, 5 = Sa
     hour = now.hour
 
@@ -140,7 +145,7 @@ def get_voting_time_status(data):
     if is_open:
         days_until_wed = (2 - weekday) % 7
         target_time = datetime(
-            now.year, now.month, now.day, 23, 59, 59
+            now.year, now.month, now.day, 23, 59, 59, tzinfo=GERMANY_TZ
         ) + timedelta(days=days_until_wed)
         label = "Voting schließt in:"
     else:
@@ -148,7 +153,7 @@ def get_voting_time_status(data):
         if days_until_sat == 0 and hour >= 1:
             days_until_sat = 7
         target_time = datetime(
-            now.year, now.month, now.day, 1, 0, 0
+            now.year, now.month, now.day, 1, 0, 0, tzinfo=GERMANY_TZ
         ) + timedelta(days=days_until_sat)
         label = "Nächstes Voting öffnet in (Samstag 01:00 Uhr):"
 
@@ -258,7 +263,7 @@ menu = st.sidebar.radio("Navigation", ["🎮 Abstimmung", "⚙️ Admin-Bereich"
 if menu == "🎮 Abstimmung":
     st.title("🎮 Freitag Gaming Voting")
 
-    now = datetime.now()
+    now = get_now()
     is_open, time_left, countdown_label, is_manual_override = (
         get_voting_time_status(data)
     )
@@ -266,7 +271,7 @@ if menu == "🎮 Abstimmung":
     st.markdown(
         f"""
         <div class="time-header-box">
-            <div class="clock-text">📅 Aktuelle Zeit: <strong>{now.strftime("%A, %d.%m.%Y - %H:%M:%S")} Uhr</strong></div>
+            <div class="clock-text">📅 Aktuelle Zeit (DE): <strong>{now.strftime("%A, %d.%m.%Y - %H:%M:%S")} Uhr</strong></div>
             <hr style="border-color:#2a2f45; margin:8px 0;">
             <div style="font-size:0.9rem; color:#aaa;">{countdown_label}</div>
             <div class="countdown-display">{"--" if is_manual_override else format_timedelta(time_left)}</div>
@@ -398,10 +403,8 @@ if menu == "🎮 Abstimmung":
                     data["voted_users"][user_name.lower()].append(game["id"])
 
                     log_entry = {
-                        "timestamp": datetime.now().strftime(
-                            "%Y-%m-%d %H:%M:%S"
-                        ),
-                        "kw": datetime.now().isocalendar()[1],
+                        "timestamp": get_now().strftime("%Y-%m-%d %H:%M:%S"),
+                        "kw": get_now().isocalendar()[1],
                         "user": user_name,
                         "game_id": game["id"],
                         "game_name": game["name"],
@@ -473,7 +476,7 @@ elif menu == "⚙️ Admin-Bereich":
                     data["manual_status_override"] = "OPEN"
                     data["admin_status_logs"].append(
                         {
-                            "timestamp": datetime.now().strftime(
+                            "timestamp": get_now().strftime(
                                 "%Y-%m-%d %H:%M:%S"
                             ),
                             "action": "Voting MANUELL GEÖFFNET",
@@ -488,7 +491,7 @@ elif menu == "⚙️ Admin-Bereich":
                     data["manual_status_override"] = "CLOSED"
                     data["admin_status_logs"].append(
                         {
-                            "timestamp": datetime.now().strftime(
+                            "timestamp": get_now().strftime(
                                 "%Y-%m-%d %H:%M:%S"
                             ),
                             "action": "Voting MANUELL GESCHLOSSEN",
@@ -503,7 +506,7 @@ elif menu == "⚙️ Admin-Bereich":
                     data["manual_status_override"] = "AUTO"
                     data["admin_status_logs"].append(
                         {
-                            "timestamp": datetime.now().strftime(
+                            "timestamp": get_now().strftime(
                                 "%Y-%m-%d %H:%M:%S"
                             ),
                             "action": "Zurück auf AUTOMATISCHEN Zeitplan",
@@ -622,8 +625,8 @@ elif menu == "⚙️ Admin-Bereich":
                             voters_map[w_name].append(user)
 
                 history_entry = {
-                    "date": datetime.now().strftime("%d.%m.%Y"),
-                    "kw": datetime.now().isocalendar()[1],
+                    "date": get_now().strftime("%d.%m.%Y"),
+                    "kw": get_now().isocalendar()[1],
                     "winners": winner_names,
                     "voters": voters_map,
                 }
@@ -632,10 +635,10 @@ elif menu == "⚙️ Admin-Bereich":
                 if tie_occurred:
                     data["randomizer_logs"].append(
                         {
-                            "timestamp": datetime.now().strftime(
+                            "timestamp": get_now().strftime(
                                 "%Y-%m-%d %H:%M:%S"
                             ),
-                            "kw": datetime.now().isocalendar()[1],
+                            "kw": get_now().isocalendar()[1],
                             "message": tie_msg,
                         }
                     )
@@ -647,9 +650,7 @@ elif menu == "⚙️ Admin-Bereich":
                 data["manual_status_override"] = "CLOSED"
                 data["admin_status_logs"].append(
                     {
-                        "timestamp": datetime.now().strftime(
-                            "%Y-%m-%d %H:%M:%S"
-                        ),
+                        "timestamp": get_now().strftime("%Y-%m-%d %H:%M:%S"),
                         "action": "Woche abgeschlossen -> Voting AUTOMATISCH MANUELL GESCHLOSSEN",
                     }
                 )
