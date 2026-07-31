@@ -36,7 +36,7 @@
         {
             "id": 6,
             "name": "Repo",
-            "votes": 0,
+            "votes": 1,
             "locked": false,
             "approved": true,
             "image_url": "https://cdn.akamai.steamstatic.com/steam/apps/3241660/header.jpg",
@@ -56,7 +56,11 @@
             "note": ""
         }
     ],
-    "voted_users": {},
+    "voted_users": {
+        "alexander": [
+            6
+        ]
+    },
     "last_winner_ids": [],
     "players": [
         "Sascha",
@@ -97,7 +101,15 @@
         }
     ],
     "manual_status_override": "AUTO",
-    "vote_history": [],
+    "vote_history": [
+        {
+            "timestamp": "2026-08-01 01:02:58",
+            "kw": 31,
+            "user": "Alexander",
+            "game_id": 6,
+            "game_name": "Repo"
+        }
+    ],
     "randomizer_logs": [],
     "admin_status_logs": [
         {
