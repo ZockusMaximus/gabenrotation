@@ -78,17 +78,6 @@
             "note": ""
         },
         {
-            "id": 8,
-            "name": "Phasmophobia",
-            "votes": 0,
-            "locked": false,
-            "approved": true,
-            "image_url": "https://cdn.akamai.steamstatic.com/steam/apps/739630/header.jpg",
-            "store_url": "https://store.steampowered.com/app/739630/",
-            "custom_store_url": "",
-            "note": ""
-        },
-        {
             "id": 9,
             "name": "Tabletop Simulator",
             "votes": 0,
