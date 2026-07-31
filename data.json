@@ -65,6 +65,17 @@
             "store_url": "https://store.steampowered.com/app/880940/",
             "custom_store_url": "https://store.steampowered.com/app/880940/Pummel_Party/",
             "note": ""
+        },
+        {
+            "id": 9,
+            "name": "Worms W.M.D",
+            "votes": 0,
+            "locked": false,
+            "approved": true,
+            "image_url": "https://cdn.akamai.steamstatic.com/steam/apps/327030/header.jpg",
+            "store_url": "https://store.steampowered.com/app/327030/",
+            "custom_store_url": "",
+            "note": ""
         }
     ],
     "voted_users": {
