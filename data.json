@@ -80,7 +80,7 @@
         {
             "id": 10,
             "name": "Blood Bowl 2",
-            "votes": 0,
+            "votes": 1,
             "locked": false,
             "approved": true,
             "image_url": "https://cdn.akamai.steamstatic.com/steam/apps/236690/header.jpg",
@@ -98,7 +98,8 @@
             2,
             6,
             7,
-            9
+            9,
+            10
         ],
         "marcel": [
             2,
@@ -220,6 +221,12 @@
             "kw": 31,
             "user": "Stefan",
             "voted_games_count": 4
+        },
+        {
+            "timestamp": "2026-08-01 01:34:34",
+            "kw": 31,
+            "user": "Stefan",
+            "voted_games_count": 5
         }
     ],
     "randomizer_logs": [],
