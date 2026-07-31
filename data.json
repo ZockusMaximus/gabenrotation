@@ -135,20 +135,6 @@
             "against_voters": []
         },
         {
-            "id": 4,
-            "name": "Sea of  Thieves",
-            "author": "Sascha",
-            "image_url": "https://cdn.akamai.steamstatic.com/steam/apps/1172620/header.jpg",
-            "store_url": "https://store.steampowered.com/app/1172620/",
-            "custom_store_url": "",
-            "note": "",
-            "reason": "",
-            "voters": [
-                "Sascha"
-            ],
-            "against_voters": []
-        },
-        {
             "id": 5,
             "name": "Pummel Party",
             "author": "Alexander",
