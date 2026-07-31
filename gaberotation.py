@@ -198,6 +198,10 @@ def load_data():
                 s["custom_store_url"] = ""
             if "note" not in s:
                 s["note"] = ""
+            if "reason" not in s:
+                s["reason"] = ""
+            if "author" not in s:
+                s["author"] = ""
             if "store_url" not in s or not s["store_url"]:
                 _, s["store_url"], _ = get_steam_data(s["name"])
             if "image_url" not in s or not s["image_url"]:
@@ -206,6 +210,10 @@ def load_data():
         for b in data.get("ban_requests", []):
             if "voters" not in b:
                 b["voters"] = []
+            if "reason" not in b:
+                b["reason"] = ""
+            if "author" not in b:
+                b["author"] = ""
 
         if isinstance(data.get("voted_users"), list):
             data["voted_users"] = {}
@@ -492,6 +500,28 @@ st.markdown(
         font-weight: bold;
         margin-top: 4px;
         display: inline-block;
+    }
+
+    /* NEON BOXEN FÜR BEGRÜNDUNGEN & VERTEIDIGUNGEN */
+    .reason-box-green {
+        background: rgba(16, 185, 129, 0.1);
+        border: 1px solid #10b981;
+        border-radius: 8px;
+        padding: 8px 12px;
+        color: #6ee7b7;
+        font-size: 0.9rem;
+        margin-top: 6px;
+        box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+    }
+    .reason-box-red {
+        background: rgba(239, 68, 68, 0.1);
+        border: 1px solid #ef4444;
+        border-radius: 8px;
+        padding: 8px 12px;
+        color: #fca5a5;
+        font-size: 0.9rem;
+        margin-top: 6px;
+        box-shadow: 0 0 10px rgba(239, 68, 68, 0.2);
     }
 
     /* NEON NEU-STYLING FÜR STREAMLIT BORDER CONTAINER */
@@ -816,7 +846,7 @@ if menu == "🎮 Hauptseite":
                 unsafe_allow_html=True,
             )
 
-    # TAB 2: SPIELVORSCHLÄGE & BANNS
+    # TAB 2: SPIELVORSCHLÄGE & BANNS MIT BEGRÜNDUNGSFELDERN
     with tab_suggestions:
         player_list = data.get("players", DEFAULT_USERS)
         total_players_needed = len(player_list)
@@ -835,9 +865,13 @@ if menu == "🎮 Hauptseite":
                     placeholder="z.B. Valheim",
                 )
                 suggested_note = st.text_input(
-                    "Notiz / Kommentar (optional):",
+                    "Notiz / Kommentar (z.B. 6 Player Mod):",
                     key="tab_sug_note_in",
-                    placeholder="z.B. 6 Player Mod",
+                )
+                suggested_reason = st.text_area(
+                    "Begründung / Meinung (Warum sollte es hinzugefügt werden?):",
+                    key="tab_sug_reason_in",
+                    placeholder="Erhöht den Spaß, hat super Koop-Modus...",
                 )
             with col_s2:
                 suggested_img = st.text_input(
@@ -893,6 +927,7 @@ if menu == "🎮 Hauptseite":
                                 "store_url": store_url_auto,
                                 "custom_store_url": suggested_link.strip(),
                                 "note": suggested_note.strip(),
+                                "reason": suggested_reason.strip(),
                                 "voters": [],
                             }
                         )
@@ -935,6 +970,12 @@ if menu == "🎮 Hauptseite":
                             f'<div class="game-note-badge">💬 {sugg["note"].strip()}</div>',
                             unsafe_allow_html=True,
                         )
+                    if sugg.get("reason", "").strip():
+                        st.markdown(
+                            f'<div class="reason-box-green">🟢 <b>Begründung:</b> {sugg["reason"].strip()}</div>',
+                            unsafe_allow_html=True,
+                        )
+
                     st.caption(
                         f"👍 **{voters_count} / {total_players_needed}** Stimmen für Einstimmigkeit"
                     )
@@ -1005,7 +1046,7 @@ if menu == "🎮 Hauptseite":
                     unsafe_allow_html=True,
                 )
 
-        # NEU: SPIELE BANNEN (AUS DER HAUPTLISTE ENTFERNEN)
+        # SPIELE BANNEN MIT VERTEIDIGUNGSFELD
         st.write("---")
         st.subheader("🚫 Spiele aus dem Voting verbannen (Bannen)")
         st.write(
@@ -1023,6 +1064,11 @@ if menu == "🎮 Hauptseite":
                 "Wähle das Spiel, das gebannt werden soll:",
                 options=["-- Bitte wählen --"] + active_game_names,
                 key="select_game_to_ban",
+            )
+            ban_reason_input = st.text_area(
+                "Begründung / Verteidigung (Warum sollte es gebannt werden?):",
+                key="ban_reason_in",
+                placeholder="Spielt keiner mehr, veraltet, macht keinen Spaß...",
             )
 
             if st.button("Bann-Antrag stellen"):
@@ -1047,6 +1093,7 @@ if menu == "🎮 Hauptseite":
                                 )
                                 + 1,
                                 "name": selected_ban_game,
+                                "reason": ban_reason_input.strip(),
                                 "voters": [],
                             }
                         )
@@ -1070,6 +1117,12 @@ if menu == "🎮 Hauptseite":
 
                 with cb_a:
                     st.markdown(f"🚫 **{ban['name']}**")
+                    if ban.get("reason", "").strip():
+                        st.markdown(
+                            f'<div class="reason-box-red">🔴 <b>Verteidigung / Grund:</b> {ban["reason"].strip()}</div>',
+                            unsafe_allow_html=True,
+                        )
+
                     st.caption(
                         f"👍 **{ban_voters_cnt} / {total_players_needed}** Stimmen für Bann"
                     )
@@ -1098,7 +1151,6 @@ if menu == "🎮 Hauptseite":
                         if all(
                             p in current_ban_voters for p in all_players_lower
                         ):
-                            # Spiel aus der Hauptliste löschen
                             data["games"] = [
                                 g
                                 for g in data["games"]
@@ -1423,7 +1475,7 @@ elif menu == "⚙️ Admin-Bereich":
                         st.success(f"'{p_name}' entfernt.")
                         st.rerun()
 
-        # TAB 3: VORSCHLÄGE & BANNS FREIGEBEN
+        # TAB 3: VORSCHLÄGE & BANNS FREIGEBEN (MIT BEGRÜNDUNGEN IM ADMIN AREA)
         with tab_adm_suggs:
             st.subheader("📩 Ausstehende Vorschläge & Banns verwalten")
 
@@ -1440,6 +1492,11 @@ elif menu == "⚙️ Admin-Bereich":
                         st.write(f"🎮 **{sugg['name']}**")
                         if sugg.get("note", "").strip():
                             st.caption(f"💬 Notiz: {sugg['note'].strip()}")
+                        if sugg.get("reason", "").strip():
+                            st.markdown(
+                                f'<div class="reason-box-green">🟢 <b>Begründung:</b> {sugg["reason"].strip()}</div>',
+                                unsafe_allow_html=True,
+                            )
                     with cb:
                         if st.button(
                             "✅ Sofort Freigeben", key=f"appr_{sugg['id']}"
@@ -1485,6 +1542,11 @@ elif menu == "⚙️ Admin-Bereich":
                     cba, cbb, cbc = st.columns([3, 1, 1])
                     with cba:
                         st.write(f"🚫 **{ban['name']}**")
+                        if ban.get("reason", "").strip():
+                            st.markdown(
+                                f'<div class="reason-box-red">🔴 <b>Verteidigung / Grund:</b> {ban["reason"].strip()}</div>',
+                                unsafe_allow_html=True,
+                            )
                         st.caption(
                             f"Stimmen: {len(ban.get('voters', []))} / {len(data.get('players', []))}"
                         )
@@ -1690,7 +1752,7 @@ elif menu == "⚙️ Admin-Bereich":
             else:
                 st.caption("Keine Status-Übersteuerungen vorhanden.")
 
-        # TAB: HISTORIE & STATISTIK-BEARBEITUNG MIT DYNAMISCHER SPIELER-ZUWOHUNG
+        # TAB: HISTORIE & STATISTIK-BEARBEITUNG
         with tab_adm_edit_history:
             st.subheader(
                 "✏️ Gewinner-Historie & Statistik-Daten verwalten"
@@ -1784,7 +1846,6 @@ elif menu == "⚙️ Admin-Bereich":
                         updated_voters_map = {}
                         for w_game in h_entry.get("winners", []):
                             curr_voters = h_entry["voters"].get(w_game, [])
-                            # Filtern auf Spieler, die es auch in der Spieler-Liste gibt
                             valid_defaults = [
                                 v for v in curr_voters if v in current_player_list
                             ]
