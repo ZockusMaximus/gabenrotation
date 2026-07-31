@@ -76,17 +76,6 @@
             "store_url": "https://store.steampowered.com/app/4704690/",
             "custom_store_url": "",
             "note": ""
-        },
-        {
-            "id": 11,
-            "name": "SM64 COOP dx",
-            "votes": 0,
-            "locked": false,
-            "approved": true,
-            "image_url": "https://sm64coopdx.com/logo.png",
-            "store_url": "https://store.steampowered.com/search/?term=SM64%20COOP%20dx",
-            "custom_store_url": "https://sm64coopdx.com/",
-            "note": ""
         }
     ],
     "voted_users": {},
