@@ -153,6 +153,7 @@ def load_data():
             "players": DEFAULT_USERS,
             "games": initial_games,
             "suggestions": [],
+            "ban_requests": [],
             "voted_users": {},
             "last_winner_ids": [],
             "override_winner_ids": [],
@@ -173,6 +174,8 @@ def load_data():
             data["players"] = DEFAULT_USERS
         if "suggestions" not in data:
             data["suggestions"] = []
+        if "ban_requests" not in data:
+            data["ban_requests"] = []
         if "last_reset_kw" not in data:
             data["last_reset_kw"] = 0
 
@@ -199,6 +202,10 @@ def load_data():
                 _, s["store_url"], _ = get_steam_data(s["name"])
             if "image_url" not in s or not s["image_url"]:
                 s["image_url"], _, _ = get_steam_data(s["name"])
+
+        for b in data.get("ban_requests", []):
+            if "voters" not in b:
+                b["voters"] = []
 
         if isinstance(data.get("voted_users"), list):
             data["voted_users"] = {}
@@ -621,7 +628,7 @@ if menu == "🎮 Hauptseite":
     tab_vote, tab_suggestions, tab_history, tab_stats = st.tabs(
         [
             "🗳️ Aktuelle Abstimmung",
-            "💡 Spielvorschläge",
+            "💡 Vorschläge & Banns",
             "🏆 Gewinner-Historie",
             "📊 Statistik & Picks",
         ]
@@ -660,7 +667,6 @@ if menu == "🎮 Hauptseite":
                     c_link = win_game.get("custom_store_url", "").strip()
                     s_link = win_game.get("store_url", "").strip()
 
-                    # SAUBERER STREAMLIT CONTAINER MIT NEON BORDER
                     with st.container(border=True):
                         st.markdown(
                             """<div style="height: 3px; background: #00f0ff; border-radius: 4px; box-shadow: 0 0 8px #00f0ff; margin-bottom: 8px;"></div>""",
@@ -810,11 +816,14 @@ if menu == "🎮 Hauptseite":
                 unsafe_allow_html=True,
             )
 
-    # TAB 2: SPIELVORSCHLÄGE
+    # TAB 2: SPIELVORSCHLÄGE & BANNS
     with tab_suggestions:
+        player_list = data.get("players", DEFAULT_USERS)
+        total_players_needed = len(player_list)
+
         st.subheader("💡 Spielvorschläge")
         st.write(
-            "Schlagt hier neue Spiele vor! Sobald **ALLE Spieler einstimmig** für einen Vorschlag gestimmt haben, wandert das Spiel **automatisch in die Haupt-Spieleliste**!"
+            f"Schlagt hier neue Spiele vor! Sobald **ALLE {total_players_needed} Spieler einstimmig** dafür gestimmt haben, wandert das Spiel **automatisch in die Haupt-Spieleliste**!"
         )
 
         with st.expander("➕ Neues Spiel vorschlagen", expanded=False):
@@ -892,9 +901,8 @@ if menu == "🎮 Hauptseite":
                         st.rerun()
 
         st.write("---")
-        player_list = data.get("players", DEFAULT_USERS)
         selected_s_user = st.selectbox(
-            "Wähle deinen Namen zum Abstimmen für Vorschläge:",
+            "Wähle deinen Namen für Vorschläge & Banns:",
             options=["-- Bitte wählen --"] + player_list,
             key="tab_sug_user_select",
         )
@@ -902,11 +910,8 @@ if menu == "🎮 Hauptseite":
             "" if selected_s_user == "-- Bitte wählen --" else selected_s_user
         )
 
-        if not data.get("suggestions"):
-            st.info("Aktuell gibt es keine offenen Spielvorschläge.")
-        else:
-            total_players_needed = len(player_list)
-
+        if data.get("suggestions"):
+            st.markdown("### Ausstehende Spielvorschläge")
             for s_idx, sugg in enumerate(list(data["suggestions"])):
                 sc_img, sc_info, sc_vote = st.columns([1.5, 3, 2])
                 has_voted_sugg = (
@@ -923,20 +928,6 @@ if menu == "🎮 Hauptseite":
                         use_container_width=True,
                     )
 
-                    c_sugg_link = sugg.get("custom_store_url", "").strip()
-                    s_sugg_link = sugg.get("store_url", "").strip()
-
-                    if c_sugg_link:
-                        st.markdown(
-                            f'<a href="{c_sugg_link}" target="_blank" class="custom-web-btn">🌐 Website / Store</a>',
-                            unsafe_allow_html=True,
-                        )
-                    elif s_sugg_link:
-                        st.markdown(
-                            f'<a href="{s_sugg_link}" target="_blank" class="steam-btn">🛒 Steam Store</a>',
-                            unsafe_allow_html=True,
-                        )
-
                 with sc_info:
                     st.markdown(f"### {sugg['name']}")
                     if sugg.get("note", "").strip():
@@ -951,8 +942,6 @@ if menu == "🎮 Hauptseite":
                         st.write(
                             f"Bisher dafür gestimmt: *{', '.join(sugg['voters'])}*"
                         )
-                    else:
-                        st.write("*Noch keine Stimmen abgegeben*")
 
                 with sc_vote:
                     btn_disabled = not s_user_name or has_voted_sugg
@@ -968,17 +957,14 @@ if menu == "🎮 Hauptseite":
                         disabled=btn_disabled,
                     ):
                         sugg["voters"].append(s_user_name)
-
                         current_voters_lower = [
                             v.lower() for v in sugg["voters"]
                         ]
                         all_players_lower = [p.lower() for p in player_list]
 
-                        is_unanimous = all(
+                        if all(
                             p in current_voters_lower for p in all_players_lower
-                        )
-
-                        if is_unanimous:
+                        ):
                             new_g_id = (
                                 max([g["id"] for g in data["games"]], default=0)
                                 + 1
@@ -1016,6 +1002,122 @@ if menu == "🎮 Hauptseite":
 
                 st.markdown(
                     '<hr style="border-color:#2a244d; margin:8px 0;">',
+                    unsafe_allow_html=True,
+                )
+
+        # NEU: SPIELE BANNEN (AUS DER HAUPTLISTE ENTFERNEN)
+        st.write("---")
+        st.subheader("🚫 Spiele aus dem Voting verbannen (Bannen)")
+        st.write(
+            f"Hier könnt ihr dafür stimmen, ein Spiel komplett aus der Hauptliste zu entfernen. "
+            f"Wenn **ALLE {total_players_needed} Spieler einstimmig** bannen, wird das Spiel **automatisch gelöscht**!"
+        )
+
+        with st.expander("➕ Spiel zum Bannen vorschlagen", expanded=False):
+            active_game_names = [
+                g["name"]
+                for g in data.get("games", [])
+                if g.get("approved", True)
+            ]
+            selected_ban_game = st.selectbox(
+                "Wähle das Spiel, das gebannt werden soll:",
+                options=["-- Bitte wählen --"] + active_game_names,
+                key="select_game_to_ban",
+            )
+
+            if st.button("Bann-Antrag stellen"):
+                if selected_ban_game != "-- Bitte wählen --":
+                    existing_bans = [
+                        b["name"].lower()
+                        for b in data.get("ban_requests", [])
+                    ]
+                    if selected_ban_game.lower() in existing_bans:
+                        st.warning(
+                            "Für dieses Spiel läuft bereits ein Bann-Antrag!"
+                        )
+                    else:
+                        data["ban_requests"].append(
+                            {
+                                "id": max(
+                                    [
+                                        b["id"]
+                                        for b in data.get("ban_requests", [])
+                                    ],
+                                    default=0,
+                                )
+                                + 1,
+                                "name": selected_ban_game,
+                                "voters": [],
+                            }
+                        )
+                        save_data(data)
+                        st.success(
+                            f"Bann-Antrag für '{selected_ban_game}' erstellt!"
+                        )
+                        st.rerun()
+
+        if data.get("ban_requests"):
+            st.markdown("### Aktive Bann-Anträge")
+            for b_idx, ban in enumerate(list(data["ban_requests"])):
+                cb_a, cb_b = st.columns([3, 2])
+                has_voted_ban = (
+                    s_user_name.lower()
+                    in [v.lower() for v in ban.get("voters", [])]
+                    if s_user_name
+                    else False
+                )
+                ban_voters_cnt = len(ban.get("voters", []))
+
+                with cb_a:
+                    st.markdown(f"🚫 **{ban['name']}**")
+                    st.caption(
+                        f"👍 **{ban_voters_cnt} / {total_players_needed}** Stimmen für Bann"
+                    )
+                    if ban.get("voters"):
+                        st.write(
+                            f"Bisher dafür gestimmt: *{', '.join(ban['voters'])}*"
+                        )
+
+                with cb_b:
+                    b_btn_disabled = not s_user_name or has_voted_ban
+                    b_btn_txt = (
+                        "Für Bann gestimmt ✅"
+                        if has_voted_ban
+                        else "Für Bann stimmen 🚫"
+                    )
+
+                    if st.button(
+                        b_btn_txt,
+                        key=f"ban_btn_{ban['id']}",
+                        disabled=b_btn_disabled,
+                    ):
+                        ban["voters"].append(s_user_name)
+                        current_ban_voters = [v.lower() for v in ban["voters"]]
+                        all_players_lower = [p.lower() for p in player_list]
+
+                        if all(
+                            p in current_ban_voters for p in all_players_lower
+                        ):
+                            # Spiel aus der Hauptliste löschen
+                            data["games"] = [
+                                g
+                                for g in data["games"]
+                                if g["name"].lower() != ban["name"].lower()
+                            ]
+                            data["ban_requests"].pop(b_idx)
+                            save_data(data)
+                            st.warning(
+                                f"🚫 EINSTIMMIG GEBANNT! '{ban['name']}' wurde aus der Spieleliste entfernt!"
+                            )
+                            st.rerun()
+                        else:
+                            save_data(data)
+                            st.success(
+                                f"Bann-Stimme von {s_user_name} registriert!"
+                            )
+                            st.rerun()
+                st.markdown(
+                    '<hr style="border-color:#2a244d; margin:4px 0;">',
                     unsafe_allow_html=True,
                 )
 
@@ -1130,7 +1232,7 @@ elif menu == "⚙️ Admin-Bereich":
             [
                 "🎮 Spiele verwalten",
                 "👥 Spieler-Verwaltung",
-                "📩 Vorschläge freigeben",
+                "📩 Vorschläge & Banns",
                 "👑 Gewinner Override",
                 "🔓 Vote Status Override",
                 "🔄 Woche Abschließen",
@@ -1284,7 +1386,7 @@ elif menu == "⚙️ Admin-Bereich":
             st.subheader("👥 Spieler-Verwaltung (Dropdown & Einstimmigkeit)")
             st.write(
                 "Hier kannst du die Spielernamen verwalten. Diese Liste bestimmt, welche Namen im Dropdown auswählbar sind "
-                "und wie viele Stimmen für eine Einstimmigkeit bei Vorschlägen benötigt werden."
+                "und wie viele Stimmen für eine Einstimmigkeit bei Vorschlägen & Banns benötigt werden."
             )
 
             col_p_add1, col_p_add2 = st.columns([2, 1])
@@ -1321,8 +1423,11 @@ elif menu == "⚙️ Admin-Bereich":
                         st.success(f"'{p_name}' entfernt.")
                         st.rerun()
 
+        # TAB 3: VORSCHLÄGE & BANNS FREIGEBEN
         with tab_adm_suggs:
-            st.subheader("📩 Ausstehende Vorschläge manuell freigeben")
+            st.subheader("📩 Ausstehende Vorschläge & Banns verwalten")
+
+            st.markdown("### 💡 Spielvorschläge")
             if data.get("suggestions"):
                 for s_idx, sugg in enumerate(list(data["suggestions"])):
                     ca_img, ca, cb, cc = st.columns([1, 2, 1, 1])
@@ -1372,6 +1477,40 @@ elif menu == "⚙️ Admin-Bereich":
                             st.rerun()
             else:
                 st.info("Keine Vorschläge vorhanden.")
+
+            st.write("---")
+            st.markdown("### 🚫 Bann-Anträge")
+            if data.get("ban_requests"):
+                for b_idx, ban in enumerate(list(data["ban_requests"])):
+                    cba, cbb, cbc = st.columns([3, 1, 1])
+                    with cba:
+                        st.write(f"🚫 **{ban['name']}**")
+                        st.caption(
+                            f"Stimmen: {len(ban.get('voters', []))} / {len(data.get('players', []))}"
+                        )
+                    with cbb:
+                        if st.button(
+                            "✅ Sofort Bannen", key=f"appr_ban_{ban['id']}"
+                        ):
+                            data["games"] = [
+                                g
+                                for g in data["games"]
+                                if g["name"].lower() != ban["name"].lower()
+                            ]
+                            data["ban_requests"].pop(b_idx)
+                            save_data(data)
+                            st.warning(f"'{ban['name']}' wurde gebannt!")
+                            st.rerun()
+                    with cbc:
+                        if st.button(
+                            "❌ Bann Ablehnen", key=f"rej_ban_{ban['id']}"
+                        ):
+                            data["ban_requests"].pop(b_idx)
+                            save_data(data)
+                            st.info(f"Bann-Antrag für '{ban['name']}' abgelehnt.")
+                            st.rerun()
+            else:
+                st.info("Keine aktiven Bann-Anträge.")
 
         with tab_adm_win_override:
             st.subheader("👑 Gewinner manuell festlegen")
@@ -1551,20 +1690,22 @@ elif menu == "⚙️ Admin-Bereich":
             else:
                 st.caption("Keine Status-Übersteuerungen vorhanden.")
 
-        # TAB: HISTORIE & STATISTIK VERWALTEN & GEWINNER HINZUFÜGEN
+        # TAB: HISTORIE & STATISTIK-BEARBEITUNG MIT DYNAMISCHER SPIELER-ZUWOHUNG
         with tab_adm_edit_history:
             st.subheader(
                 "✏️ Gewinner-Historie & Statistik-Daten verwalten"
             )
             st.write(
-                "Hier kannst du vergangene Gewinner manuell zur Historie hinzufügen oder alte/fehlerhafte Einträge löschen. "
-                "**Alle Änderungen hier wirken sich direkt auf die Statistik auf der Hauptseite aus!**"
+                "Hier kannst du vergangene Gewinner manuell zur Historie hinzufügen, gelistete Spieler pro Spiel anpassen oder Einträge löschen. "
+                "**Verknüpft mit deiner aktuellen Spieler-Verwaltung!**"
             )
+
+            current_player_list = data.get("players", DEFAULT_USERS)
 
             # FORMULAR: NEUEN HISTORIEN-EINTRAG HINZUFÜGEN
             with st.expander(
                 "➕ Gewinner manuell zur Historie/Statistik hinzufügen",
-                expanded=True,
+                expanded=False,
             ):
                 all_game_names = [
                     g["name"]
@@ -1593,21 +1734,20 @@ elif menu == "⚙️ Admin-Bereich":
                         max_selections=2,
                         key="man_h_winners",
                     )
-                    manual_voters_str = st.text_input(
-                        "Gevotet von (optional, kommagetrennt):",
-                        placeholder="Sascha, Victor",
-                        key="man_h_voters",
-                    )
+
+                voters_map_man = {}
+                if manual_winners:
+                    st.write("**Spieler für ausgewählte Gewinner zuweisen:**")
+                    for m_w in manual_winners:
+                        sel_v = st.multiselect(
+                            f"👥 Wer hat gestimmt für '{m_w}'?",
+                            options=current_player_list,
+                            key=f"man_voters_{m_w}",
+                        )
+                        voters_map_man[m_w] = sel_v
 
                 if st.button("➕ Gewinner in Historie Speichern"):
                     if manual_winners:
-                        voters_list = [
-                            v.strip()
-                            for v in manual_voters_str.split(",")
-                            if v.strip()
-                        ]
-                        voters_map_man = {w: voters_list for w in manual_winners}
-
                         new_h_entry = {
                             "date": manual_date.strip(),
                             "kw": int(manual_kw),
@@ -1624,7 +1764,7 @@ elif menu == "⚙️ Admin-Bereich":
                         st.warning("Bitte wähle mindestens 1 Gewinner-Spiel aus!")
 
             st.write("---")
-            st.markdown("### 🏆 Vorhandene Wochen-Historie verwalten")
+            st.markdown("### 🏆 Vorhandene Wochen-Historie bearbeiten")
             weekly_hist = data.get("weekly_winner_history", [])
 
             if not weekly_hist:
@@ -1633,23 +1773,50 @@ elif menu == "⚙️ Admin-Bereich":
                 for idx_h, h_entry in enumerate(list(reversed(weekly_hist))):
                     real_idx = len(weekly_hist) - 1 - idx_h
 
-                    ch_a, ch_b = st.columns([3, 1])
-                    with ch_a:
-                        st.markdown(
-                            f"🗓️ **KW {h_entry.get('kw')} ({h_entry.get('date')})** — Gewinner: *{', '.join(h_entry.get('winners', []))}*"
-                        )
-                    with ch_b:
-                        if st.button(
-                            "🗑️ Eintrag löschen", key=f"del_hist_{real_idx}"
-                        ):
-                            data["weekly_winner_history"].pop(real_idx)
-                            save_data(data)
-                            st.success("Wochen-Eintrag gelöscht!")
-                            st.rerun()
-                    st.markdown(
-                        '<hr style="border-color:#2a244d; margin:4px 0;">',
-                        unsafe_allow_html=True,
-                    )
+                    with st.expander(
+                        f"🗓️ KW {h_entry.get('kw')} ({h_entry.get('date')}) — Gewinner: {', '.join(h_entry.get('winners', []))}"
+                    ):
+                        st.markdown("#### Spieler pro Spiel anpassen:")
+
+                        if "voters" not in h_entry:
+                            h_entry["voters"] = {}
+
+                        updated_voters_map = {}
+                        for w_game in h_entry.get("winners", []):
+                            curr_voters = h_entry["voters"].get(w_game, [])
+                            # Filtern auf Spieler, die es auch in der Spieler-Liste gibt
+                            valid_defaults = [
+                                v for v in curr_voters if v in current_player_list
+                            ]
+
+                            new_voters_sel = st.multiselect(
+                                f"👥 Spieler für '{w_game}':",
+                                options=current_player_list,
+                                default=valid_defaults,
+                                key=f"edit_voters_{real_idx}_{w_game}",
+                            )
+                            updated_voters_map[w_game] = new_voters_sel
+
+                        col_eh1, col_eh2 = st.columns(2)
+                        with col_eh1:
+                            if st.button(
+                                "💾 Spieler-Änderungen Speichern",
+                                key=f"save_h_voters_{real_idx}",
+                            ):
+                                h_entry["voters"] = updated_voters_map
+                                save_data(data)
+                                st.success("Änderungen gespeichert!")
+                                st.rerun()
+
+                        with col_eh2:
+                            if st.button(
+                                "🗑️ Ganze Woche löschen",
+                                key=f"del_hist_{real_idx}",
+                            ):
+                                data["weekly_winner_history"].pop(real_idx)
+                                save_data(data)
+                                st.success("Wochen-Eintrag gelöscht!")
+                                st.rerun()
 
             st.write("---")
             st.markdown("### 📈 Stimmen-Logs bereinigen")
