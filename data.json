@@ -153,7 +153,32 @@
             "action": "Zurück auf AUTOMATISCHEN Zeitplan"
         }
     ],
-    "weekly_winner_history": [],
+    "weekly_winner_history": [
+        {
+            "date": "31.07.2026",
+            "kw": 31,
+            "winners": [
+                "Counter-Strike 2",
+                "PEAK"
+            ],
+            "voters": {
+                "Counter-Strike 2": [
+                    "Marcel",
+                    "Victor",
+                    "Sascha",
+                    "Stefan",
+                    "Alexander"
+                ],
+                "PEAK": [
+                    "Marcel",
+                    "Victor",
+                    "Sascha",
+                    "Stefan",
+                    "Alexander"
+                ]
+            }
+        }
+    ],
     "override_winner_ids": [
         1,
         5
