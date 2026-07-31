@@ -57,10 +57,7 @@
         }
     ],
     "voted_users": {},
-    "last_winner_ids": [
-        1,
-        5
-    ],
+    "last_winner_ids": [],
     "players": [
         "Sascha",
         "Alexander",
@@ -126,10 +123,7 @@
             }
         }
     ],
-    "override_winner_ids": [
-        1,
-        5
-    ],
-    "last_reset_kw": 0,
+    "override_winner_ids": [],
+    "last_reset_kw": 31,
     "ban_requests": []
 }
