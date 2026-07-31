@@ -487,14 +487,13 @@ st.markdown(
         display: inline-block;
     }
 
-    /* NEON RUNDUM-RAHMEN FÜR DIE GEWINNER-KARTE */
-    .winner-card-neon {
-        background: rgba(22, 16, 44, 0.85);
-        border: 2px solid #00f0ff;
-        border-radius: 12px;
-        padding: 12px;
-        box-shadow: 0 0 18px rgba(0, 240, 255, 0.35), inset 0 0 10px rgba(0, 240, 255, 0.15);
-        margin-bottom: 15px;
+    /* NEON NEU-STYLING FÜR STREAMLIT BORDER CONTAINER */
+    [data-testid="stVerticalBlockBorderWrapper"] {
+        border: 2px solid #00f0ff !important;
+        border-radius: 12px !important;
+        background: rgba(22, 16, 44, 0.85) !important;
+        box-shadow: 0 0 18px rgba(0, 240, 255, 0.35), inset 0 0 10px rgba(0, 240, 255, 0.15) !important;
+        padding: 10px !important;
     }
 
     .time-header-box {
@@ -661,47 +660,44 @@ if menu == "🎮 Hauptseite":
                     c_link = win_game.get("custom_store_url", "").strip()
                     s_link = win_game.get("store_url", "").strip()
 
-                    # VOLLSTÄNDIGER NEON-RAHMEN RUND UM DIE GEWINNER-KARTE
-                    st.markdown(
-                        '<div class="winner-card-neon">', unsafe_allow_html=True
-                    )
-                    st.markdown(
-                        """<div style="height: 4px; background: #00f0ff; border-radius: 4px; box-shadow: 0 0 8px #00f0ff; margin-bottom: 8px;"></div>""",
-                        unsafe_allow_html=True,
-                    )
-                    st.image(img_src, use_container_width=True)
-                    st.markdown(
-                        f"<h3 style='margin:5px 0; text-align:center;'>{g_name}</h3>",
-                        unsafe_allow_html=True,
-                    )
-
-                    if g_note:
+                    # SAUBERER STREAMLIT CONTAINER MIT NEON BORDER
+                    with st.container(border=True):
                         st.markdown(
-                            f"<div style='text-align:center;'><span class='game-note-badge'>💬 {g_note}</span></div>",
+                            """<div style="height: 3px; background: #00f0ff; border-radius: 4px; box-shadow: 0 0 8px #00f0ff; margin-bottom: 8px;"></div>""",
+                            unsafe_allow_html=True,
+                        )
+                        st.image(img_src, use_container_width=True)
+                        st.markdown(
+                            f"<h3 style='margin:5px 0; text-align:center;'>{g_name}</h3>",
                             unsafe_allow_html=True,
                         )
 
-                    st.markdown(
-                        f"<div style='color:#cbd5e1; font-size:0.95rem; text-align:center; margin:8px 0;'>📊 <b>{g_votes}</b> Stimmen</div>",
-                        unsafe_allow_html=True,
-                    )
+                        if g_note:
+                            st.markdown(
+                                f"<div style='text-align:center; margin-bottom:5px;'><span class='game-note-badge'>💬 {g_note}</span></div>",
+                                unsafe_allow_html=True,
+                            )
 
-                    if c_link:
                         st.markdown(
-                            f"<div style='text-align:center;'><a href='{c_link}' target='_blank' class='custom-web-btn'>🌐 Website / Store</a></div>",
-                            unsafe_allow_html=True,
-                        )
-                    elif s_link:
-                        st.markdown(
-                            f"<div style='text-align:center;'><a href='{s_link}' target='_blank' class='steam-btn'>🛒 Steam Store</a></div>",
+                            f"<div style='color:#cbd5e1; font-size:0.95rem; text-align:center; margin:6px 0;'>📊 <b>{g_votes}</b> Stimmen</div>",
                             unsafe_allow_html=True,
                         )
 
-                    st.markdown(
-                        """<div style="height: 4px; background: #00f0ff; border-radius: 4px; box-shadow: 0 0 8px #00f0ff; margin-top: 12px;"></div>""",
-                        unsafe_allow_html=True,
-                    )
-                    st.markdown("</div>", unsafe_allow_html=True)
+                        if c_link:
+                            st.markdown(
+                                f"<div style='text-align:center;'><a href='{c_link}' target='_blank' class='custom-web-btn'>🌐 Website / Store</a></div>",
+                                unsafe_allow_html=True,
+                            )
+                        elif s_link:
+                            st.markdown(
+                                f"<div style='text-align:center;'><a href='{s_link}' target='_blank' class='steam-btn'>🛒 Steam Store</a></div>",
+                                unsafe_allow_html=True,
+                            )
+
+                        st.markdown(
+                            """<div style="height: 3px; background: #00f0ff; border-radius: 4px; box-shadow: 0 0 8px #00f0ff; margin-top: 10px;"></div>""",
+                            unsafe_allow_html=True,
+                        )
 
         st.write("---")
         st.subheader("🎮 Spieleliste")
@@ -1555,24 +1551,86 @@ elif menu == "⚙️ Admin-Bereich":
             else:
                 st.caption("Keine Status-Übersteuerungen vorhanden.")
 
-        # NEUER TAB: HISTORIE & STATISTIK-EINTRÄGE BEARBEITEN UND LÖSCHEN
+        # TAB: HISTORIE & STATISTIK VERWALTEN & GEWINNER HINZUFÜGEN
         with tab_adm_edit_history:
             st.subheader(
                 "✏️ Gewinner-Historie & Statistik-Daten verwalten"
             )
             st.write(
-                "Hier kannst du alte Wochen-Einträge aus der Historie oder fehlerhafte Stimmen aus dem Log löschen. "
-                "**Änderungen hier wirken sich direkt auf die Statistik auf der Hauptseite aus!**"
+                "Hier kannst du vergangene Gewinner manuell zur Historie hinzufügen oder alte/fehlerhafte Einträge löschen. "
+                "**Alle Änderungen hier wirken sich direkt auf die Statistik auf der Hauptseite aus!**"
             )
 
-            st.markdown("### 🏆 Wochen-Historie verwalten")
+            # FORMULAR: NEUEN HISTORIEN-EINTRAG HINZUFÜGEN
+            with st.expander(
+                "➕ Gewinner manuell zur Historie/Statistik hinzufügen",
+                expanded=True,
+            ):
+                all_game_names = [
+                    g["name"]
+                    for g in data.get("games", [])
+                    if g.get("approved", True)
+                ]
+
+                col_h_add1, col_h_add2 = st.columns(2)
+                with col_h_add1:
+                    manual_date = st.text_input(
+                        "Datum (z.B. DD.MM.YYYY):",
+                        value=get_now().strftime("%d.%m.%Y"),
+                        key="man_h_date",
+                    )
+                    manual_kw = st.number_input(
+                        "Kalenderwoche (KW):",
+                        value=get_now().isocalendar()[1],
+                        min_value=1,
+                        max_value=53,
+                        key="man_h_kw",
+                    )
+                with col_h_add2:
+                    manual_winners = st.multiselect(
+                        "Gewinner-Spiele wählen (max. 2):",
+                        options=all_game_names,
+                        max_selections=2,
+                        key="man_h_winners",
+                    )
+                    manual_voters_str = st.text_input(
+                        "Gevotet von (optional, kommagetrennt):",
+                        placeholder="Sascha, Victor",
+                        key="man_h_voters",
+                    )
+
+                if st.button("➕ Gewinner in Historie Speichern"):
+                    if manual_winners:
+                        voters_list = [
+                            v.strip()
+                            for v in manual_voters_str.split(",")
+                            if v.strip()
+                        ]
+                        voters_map_man = {w: voters_list for w in manual_winners}
+
+                        new_h_entry = {
+                            "date": manual_date.strip(),
+                            "kw": int(manual_kw),
+                            "winners": manual_winners,
+                            "voters": voters_map_man,
+                        }
+                        data["weekly_winner_history"].append(new_h_entry)
+                        save_data(data)
+                        st.success(
+                            f"Gewinner {', '.join(manual_winners)} erfolgreich zur Historie hinzugefügt!"
+                        )
+                        st.rerun()
+                    else:
+                        st.warning("Bitte wähle mindestens 1 Gewinner-Spiel aus!")
+
+            st.write("---")
+            st.markdown("### 🏆 Vorhandene Wochen-Historie verwalten")
             weekly_hist = data.get("weekly_winner_history", [])
 
             if not weekly_hist:
                 st.info("Keine Wochen-Historie vorhanden.")
             else:
                 for idx_h, h_entry in enumerate(list(reversed(weekly_hist))):
-                    # Da wir die Liste umgekehrt anzeigen, korrekter realer Index
                     real_idx = len(weekly_hist) - 1 - idx_h
 
                     ch_a, ch_b = st.columns([3, 1])
