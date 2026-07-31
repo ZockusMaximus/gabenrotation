@@ -76,6 +76,17 @@
             "store_url": "https://store.steampowered.com/app/327030/",
             "custom_store_url": "",
             "note": ""
+        },
+        {
+            "id": 10,
+            "name": "Blood Bowl 2",
+            "votes": 0,
+            "locked": false,
+            "approved": true,
+            "image_url": "https://cdn.akamai.steamstatic.com/steam/apps/236690/header.jpg",
+            "store_url": "https://store.steampowered.com/app/236690/",
+            "custom_store_url": "",
+            "note": "Liga Mode"
         }
     ],
     "voted_users": {
