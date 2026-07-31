@@ -24,7 +24,6 @@ DEFAULT_IMAGE = (
 )
 DEFAULT_USERS = ["Sascha", "Alexander", "Victor", "Marcel", "Jan", "Stefan"]
 
-# DEINE WUNSCH-SPIELE FÜR DEN ERSTSTART
 INITIAL_GAMES_LIST = [
     "Counter-Strike 2",
     "Team Fortress 2",
@@ -94,6 +93,9 @@ def push_to_github(data_content):
         file_path = st.secrets.get("GITHUB_FILE_PATH", "data.json")
 
         if not token or not repo:
+            st.session_state["github_error"] = (
+                "GITHUB_TOKEN oder GITHUB_REPO Secret fehlt in Streamlit!"
+            )
             return
 
         url = f"https://api.github.com/repos/{repo}/contents/{file_path}"
@@ -115,9 +117,16 @@ def push_to_github(data_content):
         if sha:
             payload["sha"] = sha
 
-        requests.put(url, headers=headers, json=payload, timeout=5)
-    except Exception:
-        pass
+        put_res = requests.put(url, headers=headers, json=payload, timeout=5)
+
+        if put_res.status_code in [200, 201]:
+            st.session_state["github_error"] = None
+        else:
+            st.session_state["github_error"] = (
+                f"GitHub API Fehler {put_res.status_code}: {put_res.json().get('message')}"
+            )
+    except Exception as e:
+        st.session_state["github_error"] = f"Verbindungsfehler zu GitHub: {e}"
 
 
 # --- DATENBANK FUNKTIONEN ---
@@ -301,7 +310,7 @@ def get_top_winners(data):
     return [winner_1, sorted_games[1]], False, "Eindeutiges Ergebnis"
 
 
-# --- APP STYLING (VAPORWAVE PALETTE) ---
+# --- APP STYLING (VAPORWAVE PALETTE + GROSSE TABS) ---
 st.set_page_config(
     page_title="Zockus Maximus - Friday Game Night",
     page_icon="🎮",
@@ -352,6 +361,42 @@ st.markdown(
         text-transform: uppercase;
     }
 
+    /* BESSERE & GROSSE TAB-LEISTE */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 8px;
+        background-color: rgba(22, 16, 44, 0.6);
+        padding: 8px;
+        border-radius: 12px;
+        border: 1px solid #7928ca;
+    }
+
+    .stTabs [data-baseweb="tab"] {
+        height: 50px;
+        white-space: pre-wrap;
+        background-color: rgba(35, 25, 66, 0.8);
+        border-radius: 8px;
+        color: #cbd5e1;
+        font-family: 'Montserrat', sans-serif;
+        font-weight: 700;
+        font-size: 0.95rem;
+        padding: 0px 16px;
+        border: 1px solid #3b2d6b;
+        transition: all 0.2s ease;
+    }
+
+    .stTabs [data-baseweb="tab"]:hover {
+        background-color: rgba(121, 40, 202, 0.4);
+        color: #ffffff;
+        border-color: #00f0ff;
+    }
+
+    .stTabs [aria-selected="true"] {
+        background: linear-gradient(90deg, #ff007f 0%, #7928ca 100%) !important;
+        color: #ffffff !important;
+        border-color: #00f0ff !important;
+        box-shadow: 0 0 12px rgba(255, 0, 127, 0.5);
+    }
+
     div.stButton > button {
         background: linear-gradient(90deg, #ff007f 0%, #b800ff 100%);
         color: #ffffff !important;
@@ -371,7 +416,6 @@ st.markdown(
         transform: translateY(-2px);
     }
 
-    /* Steam Link Button */
     .steam-btn {
         display: inline-block;
         background: linear-gradient(90deg, #171a21 0%, #2a475e 100%);
@@ -393,7 +437,6 @@ st.markdown(
         box-shadow: 0 0 15px #66c0f4;
     }
 
-    /* Custom Web Link Button (Web/Store Override) */
     .custom-web-btn {
         display: inline-block;
         background: linear-gradient(90deg, #7928ca 0%, #ff007f 100%);
@@ -466,6 +509,14 @@ st.markdown(
         text-align: center; margin-bottom: 20px;
         box-shadow: 0 0 20px rgba(255, 0, 127, 0.3);
     }
+
+    .stat-card {
+        background: rgba(22, 16, 44, 0.7);
+        border: 1px solid #3b2d6b;
+        border-radius: 10px;
+        padding: 12px;
+        margin-bottom: 10px;
+    }
     </style>
 """,
     unsafe_allow_html=True,
@@ -488,7 +539,7 @@ st.markdown(
 )
 
 # ==========================================
-# SEITE 1: HAUPTSEITE (ABSTIMMUNG, HISTORIE, VORSCHLÄGE)
+# SEITE 1: HAUPTSEITE
 # ==========================================
 if menu == "🎮 Hauptseite":
     now = get_now()
@@ -529,12 +580,13 @@ if menu == "🎮 Hauptseite":
         unsafe_allow_html=True,
     )
 
-    # DREI TABS AUF DER HAUPTSEITE
-    tab_vote, tab_suggestions, tab_history = st.tabs(
+    # TABS (MIT NAMENTLICHEN ANPASSUNGEN & STATISTIK)
+    tab_vote, tab_suggestions, tab_history, tab_stats = st.tabs(
         [
             "🗳️ Aktuelle Abstimmung",
-            "💡 Spielvorschläge (Community)",
-            "🏆 Öffentliche Gewinner-Historie",
+            "💡 Spielvorschläge",
+            "🏆 Gewinner-Historie",
+            "📊 Statistik & Picks",
         ]
     )
 
@@ -607,7 +659,6 @@ if menu == "🎮 Hauptseite":
                     use_container_width=True,
                 )
 
-                # DYNAMISCHER BUTTON (STORE OVERRIDE ODER STEAM)
                 c_link = game.get("custom_store_url", "").strip()
                 s_link = game.get("store_url", "").strip()
 
@@ -672,7 +723,7 @@ if menu == "🎮 Hauptseite":
 
     # TAB 2: SPIELVORSCHLÄGE
     with tab_suggestions:
-        st.subheader("💡 Spielvorschläge der Community")
+        st.subheader("💡 Spielvorschläge")
         st.write(
             "Schlagt hier neue Spiele vor! Sobald **ALLE Spieler einstimmig** für einen Vorschlag gestimmt haben, wandert das Spiel **automatisch in die Haupt-Spieleliste**!"
         )
@@ -819,7 +870,6 @@ if menu == "🎮 Hauptseite":
                     ):
                         sugg["voters"].append(s_user_name)
 
-                        # Einstimmigkeitsprüfung
                         current_voters_lower = [
                             v.lower() for v in sugg["voters"]
                         ]
@@ -871,7 +921,7 @@ if menu == "🎮 Hauptseite":
 
     # TAB 3: GEWINNER-HISTORIE
     with tab_history:
-        st.subheader("📜 Gewinner vergangener Wochen")
+        st.subheader("🏆 Gewinner-Historie")
         if data.get("weekly_winner_history"):
             for h in reversed(data["weekly_winner_history"]):
                 with st.expander(
@@ -890,11 +940,76 @@ if menu == "🎮 Hauptseite":
         else:
             st.info("Noch keine Wochen im Verlauf gespeichert.")
 
+    # TAB 4: VISUELLE PICK-STATISTIK
+    with tab_stats:
+        st.subheader("📊 Spiele-Pick-Statistik & Gesamtwins")
+        history = data.get("weekly_winner_history", [])
+
+        if not history:
+            st.info(
+                "Noch nicht genügend Daten vorhanden. Die Statistik baut sich mit den absolvierten Wochen automatisch auf!"
+            )
+        else:
+            winner_counts = {}
+            for entry in history:
+                for winner in entry.get("winners", []):
+                    winner_counts[winner] = winner_counts.get(winner, 0) + 1
+
+            total_weeks = len(history)
+
+            st.markdown(f"### 🏆 Gewinner-Rangliste (Aus {total_weeks} Wochen)")
+            sorted_winners = sorted(
+                winner_counts.items(), key=lambda x: x[1], reverse=True
+            )
+
+            for g_name, win_cnt in sorted_winners:
+                win_percentage = int((win_cnt / total_weeks) * 100)
+                st.markdown(
+                    f"""
+                    <div class="stat-card">
+                        <div style="display:flex; justify-shadow:space-between; justify-content:space-between; align-items:center;">
+                            <span style="font-size:1.2rem; font-weight:bold; color:#00f0ff;">🎮 {g_name}</span>
+                            <span style="font-size:1.1rem; font-weight:bold; color:#ff77d6;">{win_cnt}x Gewonnen ({win_percentage}%)</span>
+                        </div>
+                    </div>
+                """,
+                    unsafe_allow_html=True,
+                )
+                st.progress(win_percentage / 100)
+
+            st.write("---")
+            st.markdown("### 📈 Stimmen-Verteilung aus der Historie")
+            all_history_votes = data.get("vote_history", [])
+            if all_history_votes:
+                game_vote_counts = {}
+                for v in all_history_votes:
+                    g_n = v.get("game_name", "Unbekannt")
+                    game_vote_counts[g_n] = game_vote_counts.get(g_n, 0) + 1
+
+                sorted_votes = sorted(
+                    game_vote_counts.items(), key=lambda x: x[1], reverse=True
+                )
+                total_all_votes = len(all_history_votes)
+
+                for g_n, v_cnt in sorted_votes[:8]:  # Top 8 meiste Stimmen
+                    pct = int((v_cnt / total_all_votes) * 100)
+                    st.caption(
+                        f"**{g_n}** — {v_cnt} Stimmen insgesamt ({pct}%)"
+                    )
+                    st.progress(pct / 100)
+            else:
+                st.caption(
+                    "Noch keine Stimmen-Logs für die Verteilung vorhanden."
+                )
+
 # ==========================================
-# SEITE 2: ADMIN-BEREICH (PASSWORTGESCHÜTZT)
+# SEITE 2: ADMIN-BEREICH (ÜBERARBEITET)
 # ==========================================
 elif menu == "⚙️ Admin-Bereich":
     st.title("⚙️ Admin Dashboard")
+
+    if st.session_state.get("github_error"):
+        st.error(f"⚠️ GitHub-Sync Problem: {st.session_state['github_error']}")
 
     pwd_input = st.text_input(
         "🔒 Admin-Passwort eingeben:", type="password", key="admin_pwd"
@@ -908,229 +1023,25 @@ elif menu == "⚙️ Admin-Bereich":
     else:
         st.success("Erfolgreich eingeloggt!")
 
-        tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs(
+        # NEUE TAB REIHENFOLGE: Spiele/Spieler vorne, Overrides, Backup hinten
+        tab_adm_games, tab_adm_players, tab_adm_suggs, tab_adm_win_override, tab_adm_status_override, tab_adm_close_week, tab_adm_logs, tab_adm_backup = st.tabs(
             [
-                "🔓 Vote Status Override",
-                "📩 Vorschläge freigeben",
-                "📊 Voting Index & Logs",
-                "👑 Gewinner Override",
-                "🔄 Woche Abschließen",
-                "🎮 Spiele Verwalten",
-                "💾 Backup & Recovery",
+                "🎮 Spiele verwalten",
                 "👥 Spieler-Verwaltung",
+                "📩 Vorschläge freigeben",
+                "👑 Gewinner Override",
+                "🔓 Vote Status Override",
+                "🔄 Woche Abschließen",
+                "📊 Index & Logs",
+                "💾 Backup & Recovery",
             ]
         )
 
-        with tab1:
-            st.subheader("Manuelles Öffnen / Schließen des Votings")
-            current_status = data.get("manual_status_override", "AUTO")
-            st.write(f"Aktueller Modus: **{current_status}**")
+        # TAB 1: SPIELE VERWALTEN (GANZ VORNE)
+        with tab_adm_games:
+            st.subheader("🎮 Spiele verwalten, Bilder & Links anpassen")
 
-            col_status1, col_status2, col_status3 = st.columns(3)
-
-            with col_status1:
-                if st.button("🟢 Immer ÖFFNEN"):
-                    data["manual_status_override"] = "OPEN"
-                    data["admin_status_logs"].append(
-                        {
-                            "timestamp": get_now().strftime(
-                                "%Y-%m-%d %H:%M:%S"
-                            ),
-                            "action": "Voting MANUELL GEÖFFNET",
-                        }
-                    )
-                    save_data(data)
-                    st.success("Voting ist nun manuell geöffnet!")
-                    st.rerun()
-
-            with col_status2:
-                if st.button("🔴 Immer SPERREN"):
-                    data["manual_status_override"] = "CLOSED"
-                    data["admin_status_logs"].append(
-                        {
-                            "timestamp": get_now().strftime(
-                                "%Y-%m-%d %H:%M:%S"
-                            ),
-                            "action": "Voting MANUELL GESCHLOSSEN",
-                        }
-                    )
-                    save_data(data)
-                    st.warning("Voting ist nun manuell gesperrt!")
-                    st.rerun()
-
-            with col_status3:
-                if st.button("🔄 AUTOMATIK (Zeitplan)"):
-                    data["manual_status_override"] = "AUTO"
-                    data["admin_status_logs"].append(
-                        {
-                            "timestamp": get_now().strftime(
-                                "%Y-%m-%d %H:%M:%S"
-                            ),
-                            "action": "Zurück auf AUTOMATISCHEN Zeitplan",
-                        }
-                    )
-                    save_data(data)
-                    st.info("Automatischer Zeitplan wiederhergestellt.")
-                    st.rerun()
-
-        with tab2:
-            st.subheader("📩 Ausstehende Vorschläge manuell freigeben")
-            if data.get("suggestions"):
-                for s_idx, sugg in enumerate(list(data["suggestions"])):
-                    ca_img, ca, cb, cc = st.columns([1, 2, 1, 1])
-                    with ca_img:
-                        st.image(
-                            sugg.get("image_url", DEFAULT_IMAGE),
-                            use_container_width=True,
-                        )
-                    with ca:
-                        st.write(f"🎮 **{sugg['name']}**")
-                    with cb:
-                        if st.button(
-                            "✅ Sofort Freigeben", key=f"appr_{sugg['id']}"
-                        ):
-                            new_g_id = (
-                                max([g["id"] for g in data["games"]], default=0)
-                                + 1
-                            )
-                            data["games"].append(
-                                {
-                                    "id": new_g_id,
-                                    "name": sugg["name"],
-                                    "votes": 0,
-                                    "locked": False,
-                                    "approved": True,
-                                    "image_url": sugg.get(
-                                        "image_url", DEFAULT_IMAGE
-                                    ),
-                                    "store_url": sugg.get("store_url", ""),
-                                    "custom_store_url": sugg.get(
-                                        "custom_store_url", ""
-                                    ),
-                                }
-                            )
-                            data["suggestions"].pop(s_idx)
-                            save_data(data)
-                            st.success(f"'{sugg['name']}' manuell freigegeben!")
-                            st.rerun()
-                    with cc:
-                        if st.button("❌ Ablehnen", key=f"rej_{sugg['id']}"):
-                            data["suggestions"].pop(s_idx)
-                            save_data(data)
-                            st.info(f"'{sugg['name']}' abgelehnt.")
-                            st.rerun()
-            else:
-                st.info("Keine Vorschläge vorhanden.")
-
-        with tab3:
-            st.subheader("📋 Registrierter Voting-Index")
-            if data["vote_history"]:
-                st.dataframe(
-                    list(reversed(data["vote_history"])),
-                    use_container_width=True,
-                )
-            else:
-                st.info("Keine Einträge.")
-
-            st.write("---")
-            st.subheader("⚠️ Admin-Status Override Logs")
-            if data.get("admin_status_logs"):
-                for a_log in reversed(data["admin_status_logs"]):
-                    st.caption(f"**[{a_log['timestamp']}]:** {a_log['action']}")
-            else:
-                st.caption("Keine Status-Übersteuerungen vorhanden.")
-
-        with tab4:
-            st.subheader("👑 Gewinner manuell festlegen")
-            game_options = {
-                g["name"]: g["id"]
-                for g in data["games"]
-                if g.get("approved", True)
-            }
-            current_override = [
-                g["name"]
-                for g in data["games"]
-                if g["id"] in data.get("override_winner_ids", [])
-            ]
-
-            selected_overrides = st.multiselect(
-                "Wähle 2 Spiele als feste Gewinner:",
-                options=list(game_options.keys()),
-                default=current_override,
-                max_selections=2,
-            )
-
-            if st.button("Gewinner-Override Speichern"):
-                data["override_winner_ids"] = [
-                    game_options[name] for name in selected_overrides
-                ]
-                save_data(data)
-                st.success("Gespeichert!")
-                st.rerun()
-
-        with tab5:
-            st.subheader("🔄 Woche Abschließen & Historie Speichern")
-            st.write(
-                "Beim Abschließen werden die Gewinner ermittelt, in der Historie gespeichert, für 1 Woche gesperrt und **das Voting wird automatisch manuell geschlossen**."
-            )
-
-            if st.button("Woche JETZT abschließen"):
-                winners, tie_occurred, tie_msg = get_top_winners(data)
-                winner_ids = [w["id"] for w in winners]
-                winner_names = [w["name"] for w in winners]
-
-                voters_map = {}
-                for w_name in winner_names:
-                    voters_map[w_name] = []
-                    w_id = [
-                        g["id"] for g in data["games"] if g["name"] == w_name
-                    ][0]
-                    for user, voted_g_ids in data["voted_users"].items():
-                        if w_id in voted_g_ids:
-                            voters_map[w_name].append(user)
-
-                history_entry = {
-                    "date": get_now().strftime("%d.%m.%Y"),
-                    "kw": get_now().isocalendar()[1],
-                    "winners": winner_names,
-                    "voters": voters_map,
-                }
-                data["weekly_winner_history"].append(history_entry)
-
-                if tie_occurred:
-                    data["randomizer_logs"].append(
-                        {
-                            "timestamp": get_now().strftime(
-                                "%Y-%m-%d %H:%M:%S"
-                            ),
-                            "kw": get_now().isocalendar()[1],
-                            "message": tie_msg,
-                        }
-                    )
-
-                data["last_winner_ids"] = winner_ids
-                data["override_winner_ids"] = []
-                data["voted_users"] = {}
-                data["manual_status_override"] = "CLOSED"
-                data["admin_status_logs"].append(
-                    {
-                        "timestamp": get_now().strftime("%Y-%m-%d %H:%M:%S"),
-                        "action": "Woche abgeschlossen -> Voting AUTOMATISCH MANUELL GESCHLOSSEN",
-                    }
-                )
-
-                for g in data["games"]:
-                    g["votes"] = 0
-
-                save_data(data)
-                st.success(
-                    "Woche abgeschlossen! Gewinner gesperrt & Voting auf MANUELL GESCHLOSSEN gesetzt."
-                )
-                st.rerun()
-
-        # TAB 6: SPIELE VERWALTEN (INCL. STORE LINK OVERRIDE)
-        with tab6:
-            st.subheader("Neues Spiel direkt hinzufügen")
+            st.markdown("#### Neues Spiel direkt hinzufügen")
             col_add1, col_add2, col_add3 = st.columns([2, 1.5, 1.5])
             with col_add1:
                 new_game = st.text_input("Spielname:", key="admin_add_game")
@@ -1138,7 +1049,7 @@ elif menu == "⚙️ Admin-Bereich":
                 new_img_url = st.text_input(
                     "Bild-URL (optional):",
                     key="admin_add_img_url",
-                    placeholder="Leer lassen für Steam",
+                    placeholder="Leer für Steam",
                 )
             with col_add3:
                 new_custom_link = st.text_input(
@@ -1179,7 +1090,7 @@ elif menu == "⚙️ Admin-Bereich":
                     st.rerun()
 
             st.write("---")
-            st.subheader("Spiele verwalten, Bilder & Links anpassen")
+            st.markdown("#### Aktuelle Spieleliste & Overrides")
             for idx, game in enumerate(data["games"]):
                 c_img, c_name, c_urls, c_actions = st.columns(
                     [1, 1.5, 2.5, 1.2]
@@ -1253,36 +1164,8 @@ elif menu == "⚙️ Admin-Bereich":
                     unsafe_allow_html=True,
                 )
 
-        with tab7:
-            st.subheader("💾 Manuelles Daten-Backup & Wiederherstellung")
-            col_bk1, col_bk2 = st.columns(2)
-
-            with col_bk1:
-                st.markdown("### 📥 Backup Herunterladen")
-                json_data = json.dumps(data, ensure_ascii=False, indent=4)
-                st.download_button(
-                    label="💾 data.json herunterladen",
-                    data=json_data,
-                    file_name=f"data_backup_{get_now().strftime('%Y%m%d_%H%M%S')}.json",
-                    mime="application/json",
-                )
-
-            with col_bk2:
-                st.markdown("### 📤 Backup Wiederherstellen")
-                uploaded_file = st.file_uploader(
-                    "Lade eine data.json hoch:", type=["json"]
-                )
-                if uploaded_file is not None:
-                    try:
-                        restored_data = json.load(uploaded_file)
-                        if st.button("⚠️ Backup JETZT einspielen"):
-                            save_data(restored_data)
-                            st.success("Daten erfolgreich wiederhergestellt!")
-                            st.rerun()
-                    except Exception as e:
-                        st.error(f"Fehler beim Lesen der Datei: {e}")
-
-        with tab8:
+        # TAB 2: SPIELER VERWALTUNG
+        with tab_adm_players:
             st.subheader("👥 Spieler-Verwaltung (Dropdown & Einstimmigkeit)")
             st.write(
                 "Hier kannst du die Spielernamen verwalten. Diese Liste bestimmt, welche Namen im Dropdown auswählbar sind "
@@ -1322,3 +1205,245 @@ elif menu == "⚙️ Admin-Bereich":
                         save_data(data)
                         st.success(f"'{p_name}' entfernt.")
                         st.rerun()
+
+        # TAB 3: VORSCHLÄGE FREIGEBEN
+        with tab_adm_suggs:
+            st.subheader("📩 Ausstehende Vorschläge manuell freigeben")
+            if data.get("suggestions"):
+                for s_idx, sugg in enumerate(list(data["suggestions"])):
+                    ca_img, ca, cb, cc = st.columns([1, 2, 1, 1])
+                    with ca_img:
+                        st.image(
+                            sugg.get("image_url", DEFAULT_IMAGE),
+                            use_container_width=True,
+                        )
+                    with ca:
+                        st.write(f"🎮 **{sugg['name']}**")
+                    with cb:
+                        if st.button(
+                            "✅ Sofort Freigeben", key=f"appr_{sugg['id']}"
+                        ):
+                            new_g_id = (
+                                max([g["id"] for g in data["games"]], default=0)
+                                + 1
+                            )
+                            data["games"].append(
+                                {
+                                    "id": new_g_id,
+                                    "name": sugg["name"],
+                                    "votes": 0,
+                                    "locked": False,
+                                    "approved": True,
+                                    "image_url": sugg.get(
+                                        "image_url", DEFAULT_IMAGE
+                                    ),
+                                    "store_url": sugg.get("store_url", ""),
+                                    "custom_store_url": sugg.get(
+                                        "custom_store_url", ""
+                                    ),
+                                }
+                            )
+                            data["suggestions"].pop(s_idx)
+                            save_data(data)
+                            st.success(f"'{sugg['name']}' manuell freigegeben!")
+                            st.rerun()
+                    with cc:
+                        if st.button("❌ Ablehnen", key=f"rej_{sugg['id']}"):
+                            data["suggestions"].pop(s_idx)
+                            save_data(data)
+                            st.info(f"'{sugg['name']}' abgelehnt.")
+                            st.rerun()
+            else:
+                st.info("Keine Vorschläge vorhanden.")
+
+        # TAB 4: GEWINNER OVERRIDE
+        with tab_adm_win_override:
+            st.subheader("👑 Gewinner manuell festlegen")
+            game_options = {
+                g["name"]: g["id"]
+                for g in data["games"]
+                if g.get("approved", True)
+            }
+            current_override = [
+                g["name"]
+                for g in data["games"]
+                if g["id"] in data.get("override_winner_ids", [])
+            ]
+
+            selected_overrides = st.multiselect(
+                "Wähle 2 Spiele als feste Gewinner:",
+                options=list(game_options.keys()),
+                default=current_override,
+                max_selections=2,
+            )
+
+            if st.button("Gewinner-Override Speichern"):
+                data["override_winner_ids"] = [
+                    game_options[name] for name in selected_overrides
+                ]
+                save_data(data)
+                st.success("Gespeichert!")
+                st.rerun()
+
+        # TAB 5: VOTE STATUS OVERRIDE
+        with tab_adm_status_override:
+            st.subheader("🔓 Manuelles Öffnen / Schließen des Votings")
+            current_status = data.get("manual_status_override", "AUTO")
+            st.write(f"Aktueller Modus: **{current_status}**")
+
+            col_status1, col_status2, col_status3 = st.columns(3)
+
+            with col_status1:
+                if st.button("🟢 Immer ÖFFNEN"):
+                    data["manual_status_override"] = "OPEN"
+                    data["admin_status_logs"].append(
+                        {
+                            "timestamp": get_now().strftime(
+                                "%Y-%m-%d %H:%M:%S"
+                            ),
+                            "action": "Voting MANUELL GEÖFFNET",
+                        }
+                    )
+                    save_data(data)
+                    st.success("Voting ist nun manuell geöffnet!")
+                    st.rerun()
+
+            with col_status2:
+                if st.button("🔴 Immer SPERREN"):
+                    data["manual_status_override"] = "CLOSED"
+                    data["admin_status_logs"].append(
+                        {
+                            "timestamp": get_now().strftime(
+                                "%Y-%m-%d %H:%M:%S"
+                            ),
+                            "action": "Voting MANUELL GESCHLOSSEN",
+                        }
+                    )
+                    save_data(data)
+                    st.warning("Voting ist nun manuell gesperrt!")
+                    st.rerun()
+
+            with col_status3:
+                if st.button("🔄 AUTOMATIK (Zeitplan)"):
+                    data["manual_status_override"] = "AUTO"
+                    data["admin_status_logs"].append(
+                        {
+                            "timestamp": get_now().strftime(
+                                "%Y-%m-%d %H:%M:%S"
+                            ),
+                            "action": "Zurück auf AUTOMATISCHEN Zeitplan",
+                        }
+                    )
+                    save_data(data)
+                    st.info("Automatischer Zeitplan wiederhergestellt.")
+                    st.rerun()
+
+        # TAB 6: WOCHE ABSCHLIESSEN
+        with tab_adm_close_week:
+            st.subheader("🔄 Woche Abschließen & Historie Speichern")
+            st.write(
+                "Beim Abschließen werden die Gewinner ermittelt, in der Historie gespeichert, für 1 Woche gesperrt und **das Voting wird automatisch manuell geschlossen**."
+            )
+
+            if st.button("Woche JETZT abschließen"):
+                winners, tie_occurred, tie_msg = get_top_winners(data)
+                winner_ids = [w["id"] for w in winners]
+                winner_names = [w["name"] for w in winners]
+
+                voters_map = {}
+                for w_name in winner_names:
+                    voters_map[w_name] = []
+                    w_id = [
+                        g["id"] for g in data["games"] if g["name"] == w_name
+                    ][0]
+                    for user, voted_g_ids in data["voted_users"].items():
+                        if w_id in voted_g_ids:
+                            voters_map[w_name].append(user)
+
+                history_entry = {
+                    "date": get_now().strftime("%d.%m.%Y"),
+                    "kw": get_now().isocalendar()[1],
+                    "winners": winner_names,
+                    "voters": voters_map,
+                }
+                data["weekly_winner_history"].append(history_entry)
+
+                if tie_occurred:
+                    data["randomizer_logs"].append(
+                        {
+                            "timestamp": get_now().strftime(
+                                "%Y-%m-%d %H:%M:%S"
+                            ),
+                            "kw": get_now().isocalendar()[1],
+                            "message": tie_msg,
+                        }
+                    )
+
+                data["last_winner_ids"] = winner_ids
+                data["override_winner_ids"] = []
+                data["voted_users"] = {}
+                data["manual_status_override"] = "CLOSED"
+                data["admin_status_logs"].append(
+                    {
+                        "timestamp": get_now().strftime("%Y-%m-%d %H:%M:%S"),
+                        "action": "Woche abgeschlossen -> Voting AUTOMATISCH MANUELL GESCHLOSSEN",
+                    }
+                )
+
+                for g in data["games"]:
+                    g["votes"] = 0
+
+                save_data(data)
+                st.success(
+                    "Woche abgeschlossen! Gewinner gesperrt & Voting auf MANUELL GESCHLOSSEN gesetzt."
+                )
+                st.rerun()
+
+        # TAB 7: LOGS & INDEX
+        with tab_adm_logs:
+            st.subheader("📋 Registrierter Voting-Index")
+            if data["vote_history"]:
+                st.dataframe(
+                    list(reversed(data["vote_history"])),
+                    use_container_width=True,
+                )
+            else:
+                st.info("Keine Einträge.")
+
+            st.write("---")
+            st.subheader("⚠️ Admin-Status Override Logs")
+            if data.get("admin_status_logs"):
+                for a_log in reversed(data["admin_status_logs"]):
+                    st.caption(f"**[{a_log['timestamp']}]:** {a_log['action']}")
+            else:
+                st.caption("Keine Status-Übersteuerungen vorhanden.")
+
+        # TAB 8: BACKUP & RECOVERY (GANZ HINTEN)
+        with tab_adm_backup:
+            st.subheader("💾 Manuelles Daten-Backup & Wiederherstellung")
+            col_bk1, col_bk2 = st.columns(2)
+
+            with col_bk1:
+                st.markdown("### 📥 Backup Herunterladen")
+                json_data = json.dumps(data, ensure_ascii=False, indent=4)
+                st.download_button(
+                    label="💾 data.json herunterladen",
+                    data=json_data,
+                    file_name=f"data_backup_{get_now().strftime('%Y%m%d_%H%M%S')}.json",
+                    mime="application/json",
+                )
+
+            with col_bk2:
+                st.markdown("### 📤 Backup Wiederherstellen")
+                uploaded_file = st.file_uploader(
+                    "Lade eine data.json hoch:", type=["json"]
+                )
+                if uploaded_file is not None:
+                    try:
+                        restored_data = json.load(uploaded_file)
+                        if st.button("⚠️ Backup JETZT einspielen"):
+                            save_data(restored_data)
+                            st.success("Daten erfolgreich wiederhergestellt!")
+                            st.rerun()
+                    except Exception as e:
+                        st.error(f"Fehler beim Lesen der Datei: {e}")
