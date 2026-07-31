@@ -136,7 +136,7 @@
         "Stefan"
     ],
     "suggestions": [],
-    "manual_status_override": "CLOSED",
+    "manual_status_override": "AUTO",
     "vote_history": [],
     "randomizer_logs": [],
     "admin_status_logs": [
@@ -147,6 +147,10 @@
         {
             "timestamp": "2026-07-31 15:20:35",
             "action": "Woche abgeschlossen -> Voting AUTOMATISCH MANUELL GESCHLOSSEN"
+        },
+        {
+            "timestamp": "2026-07-31 15:23:27",
+            "action": "Zurück auf AUTOMATISCHEN Zeitplan"
         }
     ],
     "weekly_winner_history": [
