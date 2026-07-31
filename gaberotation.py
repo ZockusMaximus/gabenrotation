@@ -1,3 +1,4 @@
+import base64
 from datetime import datetime, timedelta
 import json
 import os
@@ -22,6 +23,21 @@ DEFAULT_IMAGE = (
     "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&q=80"
 )
 DEFAULT_USERS = ["Sascha", "Alexander", "Victor", "Marcel", "Jan", "Stefan"]
+
+# DEINE WUNSCH-SPIELE FÜR DEN ERSTSTART
+INITIAL_GAMES_LIST = [
+    "Counter-Strike 2",
+    "Team Fortress 2",
+    "Day of Defeat: Source",
+    "Age of Empires 4",
+    "PEAK",
+    "Repo",
+    "MECCHA CHAMELEON",
+    "Phasmophobia",
+    "Tabletop Simulator",
+    "OpenFront",
+    "SM64 COOP dx",
+]
 
 
 # --- DEUTSCHE ZEIT HILFSFUNKTIONEN ---
@@ -63,7 +79,9 @@ def get_steam_data(game_name):
         pass
 
     clean_search = urllib.parse.quote(game_name)
-    fallback_store = f"https://store.steampowered.com/search/?term={clean_search}"
+    fallback_store = (
+        f"https://store.steampowered.com/search/?term={clean_search}"
+    )
     return DEFAULT_IMAGE, fallback_store
 
 
@@ -87,8 +105,6 @@ def push_to_github(data_content):
         get_res = requests.get(url, headers=headers, timeout=5)
         sha = get_res.json().get("sha") if get_res.status_code == 200 else None
 
-        import base64
-
         json_str = json.dumps(data_content, ensure_ascii=False, indent=4)
         content_b64 = base64.b64encode(json_str.encode("utf-8")).decode("utf-8")
 
@@ -107,82 +123,24 @@ def push_to_github(data_content):
 # --- DATENBANK FUNKTIONEN ---
 def load_data():
     if not os.path.exists(DATA_FILE):
+        initial_games = []
+        for idx, g_name in enumerate(INITIAL_GAMES_LIST, start=1):
+            img_url, store_url = get_steam_data(g_name)
+            initial_games.append(
+                {
+                    "id": idx,
+                    "name": g_name,
+                    "votes": 0,
+                    "locked": False,
+                    "approved": True,
+                    "image_url": img_url,
+                    "store_url": store_url,
+                }
+            )
+
         default_data = {
             "players": DEFAULT_USERS,
-            "games": [
-                {
-                    "id": 1,
-                    "name": "Counter-Strike 2",
-                    "votes": 0,
-                    "locked": False,
-                    "approved": True,
-                    "image_url": "https://cdn.akamai.steamstatic.com/steam/apps/730/header.jpg",
-                    "store_url": "https://store.steampowered.com/app/730/",
-                },
-                {
-                    "id": 2,
-                    "name": "Peak",
-                    "votes": 0,
-                    "locked": False,
-                    "approved": True,
-                    "image_url": "https://cdn.akamai.steamstatic.com/steam/apps/3527290/header.jpg",
-                    "store_url": "https://store.steampowered.com/app/3527290/",
-                },
-                {
-                    "id": 3,
-                    "name": "Repo",
-                    "votes": 0,
-                    "locked": False,
-                    "approved": True,
-                    "image_url": "https://cdn.akamai.steamstatic.com/steam/apps/2822280/header.jpg",
-                    "store_url": "https://store.steampowered.com/app/2822280/",
-                },
-                {
-                    "id": 4,
-                    "name": "Meccha Chameleon",
-                    "votes": 0,
-                    "locked": False,
-                    "approved": True,
-                    "image_url": "https://cdn.akamai.steamstatic.com/steam/apps/4704690/header.jpg",
-                    "store_url": "https://store.steampowered.com/app/4704690/",
-                },
-                {
-                    "id": 5,
-                    "name": "Buckshot Roulette",
-                    "votes": 0,
-                    "locked": False,
-                    "approved": True,
-                    "image_url": "https://cdn.akamai.steamstatic.com/steam/apps/2835570/header.jpg",
-                    "store_url": "https://store.steampowered.com/app/2835570/",
-                },
-                {
-                    "id": 6,
-                    "name": "Team Fortress 2",
-                    "votes": 0,
-                    "locked": False,
-                    "approved": True,
-                    "image_url": "https://cdn.akamai.steamstatic.com/steam/apps/440/header.jpg",
-                    "store_url": "https://store.steampowered.com/app/440/",
-                },
-                {
-                    "id": 7,
-                    "name": "Worms W.M.D",
-                    "votes": 0,
-                    "locked": False,
-                    "approved": True,
-                    "image_url": "https://cdn.akamai.steamstatic.com/steam/apps/327030/header.jpg",
-                    "store_url": "https://store.steampowered.com/app/327030/",
-                },
-                {
-                    "id": 8,
-                    "name": "SpeedRunners",
-                    "votes": 0,
-                    "locked": False,
-                    "approved": True,
-                    "image_url": "https://cdn.akamai.steamstatic.com/steam/apps/207140/header.jpg",
-                    "store_url": "https://store.steampowered.com/app/207140/",
-                },
-            ],
+            "games": initial_games,
             "suggestions": [],
             "voted_users": {},
             "last_winner_ids": [],
@@ -486,12 +444,11 @@ st.markdown(
 )
 
 data = load_data()
-menu = st.sidebar.radio(
-    "Navigation",
-    ["🎮 Haupt-Abstimmung", "💡 Vorschläge & Community-Voting", "⚙️ Admin-Bereich"],
-)
 
-# BANNER IMMER ANZEIGEN
+# NATIVE NAVIGATION AUF NUR 2 SEITEN BEREINIGT
+menu = st.sidebar.radio("Navigation", ["🎮 Hauptseite", "⚙️ Admin-Bereich"])
+
+# BANNER
 st.markdown(
     """
     <div class="brand-banner">
@@ -503,9 +460,9 @@ st.markdown(
 )
 
 # ==========================================
-# SEITE 1: HAUPT-ABSTIMMUNG
+# SEITE 1: HAUPTSEITE (ABSTIMMUNG, HISTORIE, VORSCHLÄGE)
 # ==========================================
-if menu == "🎮 Haupt-Abstimmung":
+if menu == "🎮 Hauptseite":
     now = get_now()
     next_gn = get_next_game_night()
     is_open, time_left, countdown_label, is_manual_override = (
@@ -544,10 +501,16 @@ if menu == "🎮 Haupt-Abstimmung":
         unsafe_allow_html=True,
     )
 
-    tab_vote, tab_history = st.tabs(
-        ["🗳️ Aktuelle Abstimmung", "🏆 Öffentliche Gewinner-Historie"]
+    # DREI TABS AUF DER HAUPTSEITE
+    tab_vote, tab_suggestions, tab_history = st.tabs(
+        [
+            "🗳️ Aktuelle Abstimmung",
+            "💡 Spielvorschläge (Community)",
+            "🏆 Öffentliche Gewinner-Historie",
+        ]
     )
 
+    # TAB 1: AKTUELLE ABSTIMMUNG
     with tab_vote:
         top_winners, tie_occurred, tie_msg = get_top_winners(data)
         if top_winners:
@@ -669,6 +632,183 @@ if menu == "🎮 Haupt-Abstimmung":
                 unsafe_allow_html=True,
             )
 
+    # TAB 2: SPIELVORSCHLÄGE (ZWISCHEN ABSTIMMUNG UND HISTORIE)
+    with tab_suggestions:
+        st.subheader("💡 Spielvorschläge der Community")
+        st.write(
+            "Schlagt hier neue Spiele vor! Sobald **ALLE Spieler einstimmig** für einen Vorschlag gestimmt haben, wandert das Spiel **automatisch in die Haupt-Spieleliste**!"
+        )
+
+        with st.expander("➕ Neues Spiel vorschlagen", expanded=False):
+            col_s1, col_s2 = st.columns([2, 2])
+            with col_s1:
+                suggested_name = st.text_input(
+                    "Spielname eingeben:",
+                    key="tab_sug_name_in",
+                    placeholder="z.B. Valheim",
+                )
+            with col_s2:
+                suggested_url = st.text_input(
+                    "Cover Bild-URL (optional):",
+                    key="tab_sug_url_in",
+                    placeholder="Leer lassen für automatischen Steam-Fetch",
+                )
+
+            if st.button("Vorschlag einreichen", key="submit_sug_tab_btn"):
+                if suggested_name.strip():
+                    existing_games = [
+                        g["name"].lower() for g in data.get("games", [])
+                    ]
+                    existing_suggs = [
+                        s["name"].lower() for s in data.get("suggestions", [])
+                    ]
+                    clean_name = suggested_name.strip()
+
+                    if (
+                        clean_name.lower() in existing_games
+                        or clean_name.lower() in existing_suggs
+                    ):
+                        st.warning("Dieses Spiel existiert bereits!")
+                    else:
+                        with st.spinner("Lade Spieldaten von Steam..."):
+                            if suggested_url.strip():
+                                img_url = suggested_url.strip()
+                                _, store_url = get_steam_data(clean_name)
+                            else:
+                                img_url, store_url = get_steam_data(clean_name)
+
+                        new_s_id = (
+                            max(
+                                [s["id"] for s in data.get("suggestions", [])],
+                                default=0,
+                            )
+                            + 1
+                        )
+                        data["suggestions"].append(
+                            {
+                                "id": new_s_id,
+                                "name": clean_name,
+                                "image_url": img_url,
+                                "store_url": store_url,
+                                "voters": [],
+                            }
+                        )
+                        save_data(data)
+                        st.success(f"Vorschlag '{clean_name}' eingereicht!")
+                        st.rerun()
+
+        st.write("---")
+        player_list = data.get("players", DEFAULT_USERS)
+        selected_s_user = st.selectbox(
+            "Wähle deinen Namen zum Abstimmen für Vorschläge:",
+            options=["-- Bitte wählen --"] + player_list,
+            key="tab_sug_user_select",
+        )
+        s_user_name = (
+            "" if selected_s_user == "-- Bitte wählen --" else selected_s_user
+        )
+
+        if not data.get("suggestions"):
+            st.info("Aktuell gibt es keine offenen Spielvorschläge.")
+        else:
+            total_players_needed = len(player_list)
+
+            for s_idx, sugg in enumerate(list(data["suggestions"])):
+                sc_img, sc_info, sc_vote = st.columns([1.5, 3, 2])
+                has_voted_sugg = (
+                    s_user_name.lower()
+                    in [v.lower() for v in sugg.get("voters", [])]
+                    if s_user_name
+                    else False
+                )
+                voters_count = len(sugg.get("voters", []))
+
+                with sc_img:
+                    st.image(
+                        sugg.get("image_url", DEFAULT_IMAGE),
+                        use_container_width=True,
+                    )
+                    if sugg.get("store_url"):
+                        st.markdown(
+                            f'<a href="{sugg["store_url"]}" target="_blank" class="steam-btn">🛒 Steam Store</a>',
+                            unsafe_allow_html=True,
+                        )
+
+                with sc_info:
+                    st.markdown(f"### {sugg['name']}")
+                    st.caption(
+                        f"👍 **{voters_count} / {total_players_needed}** Stimmen für Einstimmigkeit"
+                    )
+                    if sugg.get("voters"):
+                        st.write(
+                            f"Bisher dafür gestimmt: *{', '.join(sugg['voters'])}*"
+                        )
+                    else:
+                        st.write("*Noch keine Stimmen abgegeben*")
+
+                with sc_vote:
+                    btn_disabled = not s_user_name or has_voted_sugg
+                    btn_txt = (
+                        "Dafür gestimmt ✅"
+                        if has_voted_sugg
+                        else "Dafür stimmen 👍"
+                    )
+
+                    if st.button(
+                        btn_txt,
+                        key=f"tab_sug_btn_{sugg['id']}",
+                        disabled=btn_disabled,
+                    ):
+                        sugg["voters"].append(s_user_name)
+
+                        # Einstimmigkeitsprüfung
+                        current_voters_lower = [
+                            v.lower() for v in sugg["voters"]
+                        ]
+                        all_players_lower = [p.lower() for p in player_list]
+
+                        is_unanimous = all(
+                            p in current_voters_lower for p in all_players_lower
+                        )
+
+                        if is_unanimous:
+                            new_g_id = (
+                                max([g["id"] for g in data["games"]], default=0)
+                                + 1
+                            )
+                            data["games"].append(
+                                {
+                                    "id": new_g_id,
+                                    "name": sugg["name"],
+                                    "votes": 0,
+                                    "locked": False,
+                                    "approved": True,
+                                    "image_url": sugg.get(
+                                        "image_url", DEFAULT_IMAGE
+                                    ),
+                                    "store_url": sugg.get("store_url", ""),
+                                }
+                            )
+                            data["suggestions"].pop(s_idx)
+                            save_data(data)
+                            st.balloons()
+                            st.success(
+                                f"🎉 EINSTIMMIG! '{sugg['name']}' wurde in die Hauptliste aufgenommen!"
+                            )
+                            st.rerun()
+                        else:
+                            save_data(data)
+                            st.success(
+                                f"Stimme von {s_user_name} registriert!"
+                            )
+                            st.rerun()
+
+                st.markdown(
+                    '<hr style="border-color:#2a244d; margin:8px 0;">',
+                    unsafe_allow_html=True,
+                )
+
+    # TAB 3: GEWINNER-HISTORIE
     with tab_history:
         st.subheader("📜 Gewinner vergangener Wochen")
         if data.get("weekly_winner_history"):
@@ -690,179 +830,7 @@ if menu == "🎮 Haupt-Abstimmung":
             st.info("Noch keine Wochen im Verlauf gespeichert.")
 
 # ==========================================
-# SEITE 2: VORSCHLÄGE & COMMUNITY-VOTING
-# ==========================================
-elif menu == "💡 Vorschläge & Community-Voting":
-    st.title("💡 Spiel-Vorschläge der Community")
-    st.write(
-        "Hier könnt ihr neue Spiele vorschlagen und gemeinsam abstimmen. "
-        "Sobald **ALLE Spieler einstimmig** für einen Vorschlag gestimmt haben, wandert das Spiel **automatisch in die Haupt-Spieleliste**!"
-    )
-
-    # 1. SPIEL VORSCHLAGEN FORMULAR
-    with st.expander("➕ Neues Spiel vorschlagen", expanded=True):
-        col_s1, col_s2 = st.columns([2, 2])
-        with col_s1:
-            suggested_name = st.text_input(
-                "Spielname eingeben:",
-                key="sug_name_in",
-                placeholder="z.B. Valheim",
-            )
-        with col_s2:
-            suggested_url = st.text_input(
-                "Cover Bild-URL (optional):",
-                key="sug_url_in",
-                placeholder="https://.../cover.jpg",
-            )
-
-        if st.button("Vorschlag einreichen"):
-            if suggested_name.strip():
-                existing_games = [
-                    g["name"].lower() for g in data.get("games", [])
-                ]
-                existing_suggs = [
-                    s["name"].lower() for s in data.get("suggestions", [])
-                ]
-                clean_name = suggested_name.strip()
-
-                if (
-                    clean_name.lower() in existing_games
-                    or clean_name.lower() in existing_suggs
-                ):
-                    st.warning("Dieses Spiel existiert bereits in der Liste oder bei den Vorschlägen!")
-                else:
-                    with st.spinner("Lade Spieldaten von Steam..."):
-                        if suggested_url.strip():
-                            img_url = suggested_url.strip()
-                            _, store_url = get_steam_data(clean_name)
-                        else:
-                            img_url, store_url = get_steam_data(clean_name)
-
-                    new_s_id = (
-                        max(
-                            [s["id"] for s in data.get("suggestions", [])],
-                            default=0,
-                        )
-                        + 1
-                    )
-                    data["suggestions"].append(
-                        {
-                            "id": new_s_id,
-                            "name": clean_name,
-                            "image_url": img_url,
-                            "store_url": store_url,
-                            "voters": [],
-                        }
-                    )
-                    save_data(data)
-                    st.success(f"Vorschlag '{clean_name}' eingereicht!")
-                    st.rerun()
-
-    st.write("---")
-    st.subheader("📋 Aktuelle Vorschläge & Stimmen")
-
-    # SPIELER WÄHLEN FÜR VORSCHLAG-VOTE
-    player_list = data.get("players", DEFAULT_USERS)
-    selected_s_user = st.selectbox(
-        "Wähle deinen Namen zum Abstimmen für Vorschläge:",
-        options=["-- Bitte wählen --"] + player_list,
-        key="sug_user_select",
-    )
-    s_user_name = (
-        "" if selected_s_user == "-- Bitte wählen --" else selected_s_user
-    )
-
-    if not data.get("suggestions"):
-        st.info("Aktuell gibt es keine offenen Spielvorschläge.")
-    else:
-        total_players_needed = len(player_list)
-
-        for s_idx, sugg in enumerate(list(data["suggestions"])):
-            sc_img, sc_info, sc_vote = st.columns([1.5, 3, 2])
-            has_voted_sugg = (
-                s_user_name.lower()
-                in [v.lower() for v in sugg.get("voters", [])]
-                if s_user_name
-                else False
-            )
-            voters_count = len(sugg.get("voters", []))
-
-            with sc_img:
-                st.image(
-                    sugg.get("image_url", DEFAULT_IMAGE),
-                    use_container_width=True,
-                )
-                if sugg.get("store_url"):
-                    st.markdown(
-                        f'<a href="{sugg["store_url"]}" target="_blank" class="steam-btn">🛒 Steam Store</a>',
-                        unsafe_allow_html=True,
-                    )
-
-            with sc_info:
-                st.markdown(f"### {sugg['name']}")
-                st.caption(
-                    f"👍 **{voters_count} / {total_players_needed}** Stimmen für Einstimmigkeit"
-                )
-                if sugg.get("voters"):
-                    st.write(f"Bisher dafür gestimmt: *{', '.join(sugg['voters'])}*")
-                else:
-                    st.write("*Noch keine Stimmen abgegeben*")
-
-            with sc_vote:
-                btn_disabled = not s_user_name or has_voted_sugg
-                btn_txt = (
-                    "Dafür gestimmt ✅" if has_voted_sugg else "Dafür stimmen 👍"
-                )
-
-                if st.button(btn_txt, key=f"sug_btn_{sugg['id']}", disabled=btn_disabled):
-                    sugg["voters"].append(s_user_name)
-
-                    # EINSTIMMIGKEITS-PRÜFUNG: Haben alle Spieler gestimmt?
-                    current_voters_lower = [
-                        v.lower() for v in sugg["voters"]
-                    ]
-                    all_players_lower = [p.lower() for p in player_list]
-
-                    is_unanimous = all(
-                        p in current_voters_lower for p in all_players_lower
-                    )
-
-                    if is_unanimous:
-                        # Automatisch in die Haupt-Spieleliste verschieben!
-                        new_g_id = (
-                            max([g["id"] for g in data["games"]], default=0) + 1
-                        )
-                        data["games"].append(
-                            {
-                                "id": new_g_id,
-                                "name": sugg["name"],
-                                "votes": 0,
-                                "locked": False,
-                                "approved": True,
-                                "image_url": sugg.get("image_url", DEFAULT_IMAGE),
-                                "store_url": sugg.get("store_url", ""),
-                            }
-                        )
-                        # Vorschlag entfernen
-                        data["suggestions"].pop(s_idx)
-                        save_data(data)
-                        st.balloons()
-                        st.success(
-                            f"🎉 EINSTIMMIG! '{sugg['name']}' wurde automatisch in die Haupt-Spieleliste aufgenommen!"
-                        )
-                        st.rerun()
-                    else:
-                        save_data(data)
-                        st.success(f"Stimme von {s_user_name} registriert!")
-                        st.rerun()
-
-            st.markdown(
-                '<hr style="border-color:#2a244d; margin:8px 0;">',
-                unsafe_allow_html=True,
-            )
-
-# ==========================================
-# SEITE 3: ADMIN-BEREICH (PASSWORTGESCHÜTZT)
+# SEITE 2: ADMIN-BEREICH (PASSWORTGESCHÜTZT)
 # ==========================================
 elif menu == "⚙️ Admin-Bereich":
     st.title("⚙️ Admin Dashboard")
@@ -904,7 +872,9 @@ elif menu == "⚙️ Admin-Bereich":
                     data["manual_status_override"] = "OPEN"
                     data["admin_status_logs"].append(
                         {
-                            "timestamp": get_now().strftime("%Y-%m-%d %H:%M:%S"),
+                            "timestamp": get_now().strftime(
+                                "%Y-%m-%d %H:%M:%S"
+                            ),
                             "action": "Voting MANUELL GEÖFFNET",
                         }
                     )
@@ -917,7 +887,9 @@ elif menu == "⚙️ Admin-Bereich":
                     data["manual_status_override"] = "CLOSED"
                     data["admin_status_logs"].append(
                         {
-                            "timestamp": get_now().strftime("%Y-%m-%d %H:%M:%S"),
+                            "timestamp": get_now().strftime(
+                                "%Y-%m-%d %H:%M:%S"
+                            ),
                             "action": "Voting MANUELL GESCHLOSSEN",
                         }
                     )
@@ -930,7 +902,9 @@ elif menu == "⚙️ Admin-Bereich":
                     data["manual_status_override"] = "AUTO"
                     data["admin_status_logs"].append(
                         {
-                            "timestamp": get_now().strftime("%Y-%m-%d %H:%M:%S"),
+                            "timestamp": get_now().strftime(
+                                "%Y-%m-%d %H:%M:%S"
+                            ),
                             "action": "Zurück auf AUTOMATISCHEN Zeitplan",
                         }
                     )
@@ -951,9 +925,12 @@ elif menu == "⚙️ Admin-Bereich":
                     with ca:
                         st.write(f"🎮 **{sugg['name']}**")
                     with cb:
-                        if st.button("✅ Sofort Freigeben", key=f"appr_{sugg['id']}"):
+                        if st.button(
+                            "✅ Sofort Freigeben", key=f"appr_{sugg['id']}"
+                        ):
                             new_g_id = (
-                                max([g["id"] for g in data["games"]], default=0) + 1
+                                max([g["id"] for g in data["games"]], default=0)
+                                + 1
                             )
                             data["games"].append(
                                 {
@@ -1059,7 +1036,9 @@ elif menu == "⚙️ Admin-Bereich":
                 if tie_occurred:
                     data["randomizer_logs"].append(
                         {
-                            "timestamp": get_now().strftime("%Y-%m-%d %H:%M:%S"),
+                            "timestamp": get_now().strftime(
+                                "%Y-%m-%d %H:%M:%S"
+                            ),
                             "kw": get_now().isocalendar()[1],
                             "message": tie_msg,
                         }
@@ -1216,7 +1195,6 @@ elif menu == "⚙️ Admin-Bereich":
                     except Exception as e:
                         st.error(f"Fehler beim Lesen der Datei: {e}")
 
-        # TAB 8: SPIELER-VERWALTUNG (NAMEN HINZUFÜGEN / LÖSCHEN)
         with tab8:
             st.subheader("👥 Spieler-Verwaltung (Dropdown & Einstimmigkeit)")
             st.write(
