@@ -34,17 +34,6 @@
             "note": ""
         },
         {
-            "id": 4,
-            "name": "Age of Empires 4",
-            "votes": 0,
-            "locked": false,
-            "approved": true,
-            "image_url": "https://cdn.akamai.steamstatic.com/steam/apps/1466860/header.jpg",
-            "store_url": "https://store.steampowered.com/app/1466860/",
-            "custom_store_url": "",
-            "note": ""
-        },
-        {
             "id": 5,
             "name": "PEAK",
             "votes": 0,
