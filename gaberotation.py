@@ -487,6 +487,16 @@ st.markdown(
         display: inline-block;
     }
 
+    /* NEON RUNDUM-RAHMEN FÜR DIE GEWINNER-KARTE */
+    .winner-card-neon {
+        background: rgba(22, 16, 44, 0.85);
+        border: 2px solid #00f0ff;
+        border-radius: 12px;
+        padding: 12px;
+        box-shadow: 0 0 18px rgba(0, 240, 255, 0.35), inset 0 0 10px rgba(0, 240, 255, 0.15);
+        margin-bottom: 15px;
+    }
+
     .time-header-box {
         background: rgba(22, 16, 44, 0.85);
         border: 1px solid #7928ca;
@@ -651,44 +661,47 @@ if menu == "🎮 Hauptseite":
                     c_link = win_game.get("custom_store_url", "").strip()
                     s_link = win_game.get("store_url", "").strip()
 
-                    # CONTAINER FÜR GEWINNERKARTE MIT NEON BORDERN
-                    with st.container():
-                        st.markdown(
-                            """<div style="height: 4px; background: #00f0ff; border-radius: 4px; box-shadow: 0 0 8px #00f0ff; margin-bottom: 8px;"></div>""",
-                            unsafe_allow_html=True,
-                        )
-                        st.image(img_src, use_container_width=True)
-                        st.markdown(
-                            f"<h3 style='margin:5px 0; text-align:center;'>{g_name}</h3>",
-                            unsafe_allow_html=True,
-                        )
+                    # VOLLSTÄNDIGER NEON-RAHMEN RUND UM DIE GEWINNER-KARTE
+                    st.markdown(
+                        '<div class="winner-card-neon">', unsafe_allow_html=True
+                    )
+                    st.markdown(
+                        """<div style="height: 4px; background: #00f0ff; border-radius: 4px; box-shadow: 0 0 8px #00f0ff; margin-bottom: 8px;"></div>""",
+                        unsafe_allow_html=True,
+                    )
+                    st.image(img_src, use_container_width=True)
+                    st.markdown(
+                        f"<h3 style='margin:5px 0; text-align:center;'>{g_name}</h3>",
+                        unsafe_allow_html=True,
+                    )
 
-                        if g_note:
-                            st.markdown(
-                                f"<div style='text-align:center;'><span class='game-note-badge'>💬 {g_note}</span></div>",
-                                unsafe_allow_html=True,
-                            )
-
+                    if g_note:
                         st.markdown(
-                            f"<div style='color:#cbd5e1; font-size:0.95rem; text-align:center; margin:8px 0;'>📊 <b>{g_votes}</b> Stimmen</div>",
+                            f"<div style='text-align:center;'><span class='game-note-badge'>💬 {g_note}</span></div>",
                             unsafe_allow_html=True,
                         )
 
-                        if c_link:
-                            st.markdown(
-                                f"<div style='text-align:center;'><a href='{c_link}' target='_blank' class='custom-web-btn'>🌐 Website / Store</a></div>",
-                                unsafe_allow_html=True,
-                            )
-                        elif s_link:
-                            st.markdown(
-                                f"<div style='text-align:center;'><a href='{s_link}' target='_blank' class='steam-btn'>🛒 Steam Store</a></div>",
-                                unsafe_allow_html=True,
-                            )
+                    st.markdown(
+                        f"<div style='color:#cbd5e1; font-size:0.95rem; text-align:center; margin:8px 0;'>📊 <b>{g_votes}</b> Stimmen</div>",
+                        unsafe_allow_html=True,
+                    )
 
+                    if c_link:
                         st.markdown(
-                            """<div style="height: 4px; background: #00f0ff; border-radius: 4px; box-shadow: 0 0 8px #00f0ff; margin-top: 12px; margin-bottom: 15px;"></div>""",
+                            f"<div style='text-align:center;'><a href='{c_link}' target='_blank' class='custom-web-btn'>🌐 Website / Store</a></div>",
                             unsafe_allow_html=True,
                         )
+                    elif s_link:
+                        st.markdown(
+                            f"<div style='text-align:center;'><a href='{s_link}' target='_blank' class='steam-btn'>🛒 Steam Store</a></div>",
+                            unsafe_allow_html=True,
+                        )
+
+                    st.markdown(
+                        """<div style="height: 4px; background: #00f0ff; border-radius: 4px; box-shadow: 0 0 8px #00f0ff; margin-top: 12px;"></div>""",
+                        unsafe_allow_html=True,
+                    )
+                    st.markdown("</div>", unsafe_allow_html=True)
 
         st.write("---")
         st.subheader("🎮 Spieleliste")
@@ -1044,7 +1057,6 @@ if menu == "🎮 Hauptseite":
             winner_counts = {}
             for entry in history:
                 for winner in entry.get("winners", []):
-                    # KORREKTUR: BEREINIGUNG DES OVERRIDE TGS FÜR STATISTIK
                     clean_w_name = winner.replace(" *(Admin Override)*", "")
                     winner_counts[clean_w_name] = (
                         winner_counts.get(clean_w_name, 0) + 1
@@ -1118,7 +1130,7 @@ elif menu == "⚙️ Admin-Bereich":
     else:
         st.success("Erfolgreich eingeloggt!")
 
-        tab_adm_games, tab_adm_players, tab_adm_suggs, tab_adm_win_override, tab_adm_status_override, tab_adm_close_week, tab_adm_logs, tab_adm_backup = st.tabs(
+        tab_adm_games, tab_adm_players, tab_adm_suggs, tab_adm_win_override, tab_adm_status_override, tab_adm_close_week, tab_adm_logs, tab_adm_edit_history, tab_adm_backup = st.tabs(
             [
                 "🎮 Spiele verwalten",
                 "👥 Spieler-Verwaltung",
@@ -1127,6 +1139,7 @@ elif menu == "⚙️ Admin-Bereich":
                 "🔓 Vote Status Override",
                 "🔄 Woche Abschließen",
                 "📊 Index & Logs",
+                "✏️ Historie & Stats bearbeiten",
                 "💾 Backup & Recovery",
             ]
         )
@@ -1455,11 +1468,10 @@ elif menu == "⚙️ Admin-Bereich":
                     st.info("Automatischer Zeitplan wiederhergestellt.")
                     st.rerun()
 
-        # TAB 6: WOCHE ABSCHLIESSEN (ERWEITERT UM OVERRIDE IN HISTORIE & STATISTIK)
         with tab_adm_close_week:
             st.subheader("🔄 Woche Abschließen & Historie Speichern")
             st.write(
-                "Beim Abschließen werden die Gewinner ermittelt (inkl. evtl. aktiver Admin-Overrides), in der Historie gespeichert, in der Statistik erfasst, für 1 Woche gesperrt und **das Voting wird geschlossen**."
+                "Beim Abschließen werden die Gewinner ermittelt, in der Historie gespeichert, in der Statistik erfasst, für 1 Woche gesperrt und **das Voting wird geschlossen**."
             )
 
             if st.button("Woche JETZT abschließen"):
@@ -1468,7 +1480,6 @@ elif menu == "⚙️ Admin-Bereich":
                 )
                 winner_ids = [w["id"] for w in winners]
 
-                # Richtiges Speichern für Historie
                 winner_names_history = []
                 voters_map = {}
 
@@ -1543,6 +1554,68 @@ elif menu == "⚙️ Admin-Bereich":
                     st.caption(f"**[{a_log['timestamp']}]:** {a_log['action']}")
             else:
                 st.caption("Keine Status-Übersteuerungen vorhanden.")
+
+        # NEUER TAB: HISTORIE & STATISTIK-EINTRÄGE BEARBEITEN UND LÖSCHEN
+        with tab_adm_edit_history:
+            st.subheader(
+                "✏️ Gewinner-Historie & Statistik-Daten verwalten"
+            )
+            st.write(
+                "Hier kannst du alte Wochen-Einträge aus der Historie oder fehlerhafte Stimmen aus dem Log löschen. "
+                "**Änderungen hier wirken sich direkt auf die Statistik auf der Hauptseite aus!**"
+            )
+
+            st.markdown("### 🏆 Wochen-Historie verwalten")
+            weekly_hist = data.get("weekly_winner_history", [])
+
+            if not weekly_hist:
+                st.info("Keine Wochen-Historie vorhanden.")
+            else:
+                for idx_h, h_entry in enumerate(list(reversed(weekly_hist))):
+                    # Da wir die Liste umgekehrt anzeigen, korrekter realer Index
+                    real_idx = len(weekly_hist) - 1 - idx_h
+
+                    ch_a, ch_b = st.columns([3, 1])
+                    with ch_a:
+                        st.markdown(
+                            f"🗓️ **KW {h_entry.get('kw')} ({h_entry.get('date')})** — Gewinner: *{', '.join(h_entry.get('winners', []))}*"
+                        )
+                    with ch_b:
+                        if st.button(
+                            "🗑️ Eintrag löschen", key=f"del_hist_{real_idx}"
+                        ):
+                            data["weekly_winner_history"].pop(real_idx)
+                            save_data(data)
+                            st.success("Wochen-Eintrag gelöscht!")
+                            st.rerun()
+                    st.markdown(
+                        '<hr style="border-color:#2a244d; margin:4px 0;">',
+                        unsafe_allow_html=True,
+                    )
+
+            st.write("---")
+            st.markdown("### 📈 Stimmen-Logs bereinigen")
+            v_hist = data.get("vote_history", [])
+
+            if not v_hist:
+                st.info("Keine Voting-Logs vorhanden.")
+            else:
+                with st.expander("Einzelne Stimmen einsehen & löschen"):
+                    for idx_v, v_entry in enumerate(list(reversed(v_hist))):
+                        real_v_idx = len(v_hist) - 1 - idx_v
+                        cv_a, cv_b = st.columns([3, 1])
+                        with cv_a:
+                            st.caption(
+                                f"[{v_entry.get('timestamp')}] User: **{v_entry.get('user')}** ➔ Spiel: **{v_entry.get('game_name')}** (KW {v_entry.get('kw')})"
+                            )
+                        with cv_b:
+                            if st.button(
+                                "🗑️ Löschen", key=f"del_vote_log_{real_v_idx}"
+                            ):
+                                data["vote_history"].pop(real_v_idx)
+                                save_data(data)
+                                st.success("Stimm-Log gelöscht!")
+                                st.rerun()
 
         with tab_adm_backup:
             st.subheader("💾 Manuelles Daten-Backup & Wiederherstellung")
