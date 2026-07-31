@@ -74,7 +74,7 @@ def get_steam_data(game_name):
             app_id = res["items"][0]["id"]
             img_url = f"https://cdn.akamai.steamstatic.com/steam/apps/{app_id}/header.jpg"
             store_url = f"https://store.steampowered.com/app/{app_id}/"
-            return img_url, store_url
+            return img_url, store_url, True
     except Exception:
         pass
 
@@ -82,7 +82,7 @@ def get_steam_data(game_name):
     fallback_store = (
         f"https://store.steampowered.com/search/?term={clean_search}"
     )
-    return DEFAULT_IMAGE, fallback_store
+    return DEFAULT_IMAGE, fallback_store, False
 
 
 # --- GITHUB AUTOMATISCHE SYNC FUNKTION ---
@@ -125,7 +125,7 @@ def load_data():
     if not os.path.exists(DATA_FILE):
         initial_games = []
         for idx, g_name in enumerate(INITIAL_GAMES_LIST, start=1):
-            img_url, store_url = get_steam_data(g_name)
+            img_url, store_url, is_steam = get_steam_data(g_name)
             initial_games.append(
                 {
                     "id": idx,
@@ -135,6 +135,7 @@ def load_data():
                     "approved": True,
                     "image_url": img_url,
                     "store_url": store_url,
+                    "custom_store_url": "",
                 }
             )
 
@@ -165,18 +166,22 @@ def load_data():
         for g in data.get("games", []):
             if "approved" not in g:
                 g["approved"] = True
+            if "custom_store_url" not in g:
+                g["custom_store_url"] = ""
             if "store_url" not in g or not g["store_url"]:
-                _, g["store_url"] = get_steam_data(g["name"])
+                _, g["store_url"], _ = get_steam_data(g["name"])
             if "image_url" not in g or not g["image_url"]:
-                g["image_url"], _ = get_steam_data(g["name"])
+                g["image_url"], _, _ = get_steam_data(g["name"])
 
         for s in data.get("suggestions", []):
             if "voters" not in s:
                 s["voters"] = []
+            if "custom_store_url" not in s:
+                s["custom_store_url"] = ""
             if "store_url" not in s or not s["store_url"]:
-                _, s["store_url"] = get_steam_data(s["name"])
+                _, s["store_url"], _ = get_steam_data(s["name"])
             if "image_url" not in s or not s["image_url"]:
-                s["image_url"], _ = get_steam_data(s["name"])
+                s["image_url"], _, _ = get_steam_data(s["name"])
 
         if isinstance(data.get("voted_users"), list):
             data["voted_users"] = {}
@@ -366,6 +371,7 @@ st.markdown(
         transform: translateY(-2px);
     }
 
+    /* Steam Link Button */
     .steam-btn {
         display: inline-block;
         background: linear-gradient(90deg, #171a21 0%, #2a475e 100%);
@@ -385,6 +391,28 @@ st.markdown(
         background: #66c0f4;
         color: #171a21 !important;
         box-shadow: 0 0 15px #66c0f4;
+    }
+
+    /* Custom Web Link Button (Web/Store Override) */
+    .custom-web-btn {
+        display: inline-block;
+        background: linear-gradient(90deg, #7928ca 0%, #ff007f 100%);
+        color: #ffffff !important;
+        font-family: 'Montserrat', sans-serif;
+        font-size: 0.8rem;
+        font-weight: 700;
+        padding: 6px 12px;
+        border-radius: 6px;
+        border: 1px solid #00f0ff;
+        text-decoration: none;
+        text-align: center;
+        margin-top: 4px;
+        box-shadow: 0 0 8px rgba(0, 240, 255, 0.4);
+    }
+    .custom-web-btn:hover {
+        background: #00f0ff;
+        color: #0d0b1e !important;
+        box-shadow: 0 0 15px #00f0ff;
     }
 
     .time-header-box {
@@ -445,7 +473,7 @@ st.markdown(
 
 data = load_data()
 
-# NATIVE NAVIGATION AUF NUR 2 SEITEN BEREINIGT
+# NAVIGATION
 menu = st.sidebar.radio("Navigation", ["🎮 Hauptseite", "⚙️ Admin-Bereich"])
 
 # BANNER
@@ -578,9 +606,19 @@ if menu == "🎮 Hauptseite":
                     game.get("image_url", DEFAULT_IMAGE),
                     use_container_width=True,
                 )
-                if game.get("store_url"):
+
+                # DYNAMISCHER BUTTON (STORE OVERRIDE ODER STEAM)
+                c_link = game.get("custom_store_url", "").strip()
+                s_link = game.get("store_url", "").strip()
+
+                if c_link:
                     st.markdown(
-                        f'<a href="{game["store_url"]}" target="_blank" class="steam-btn">🛒 Steam Store</a>',
+                        f'<a href="{c_link}" target="_blank" class="custom-web-btn">🌐 Website / Store</a>',
+                        unsafe_allow_html=True,
+                    )
+                elif s_link:
+                    st.markdown(
+                        f'<a href="{s_link}" target="_blank" class="steam-btn">🛒 Steam Store</a>',
                         unsafe_allow_html=True,
                     )
 
@@ -632,7 +670,7 @@ if menu == "🎮 Hauptseite":
                 unsafe_allow_html=True,
             )
 
-    # TAB 2: SPIELVORSCHLÄGE (ZWISCHEN ABSTIMMUNG UND HISTORIE)
+    # TAB 2: SPIELVORSCHLÄGE
     with tab_suggestions:
         st.subheader("💡 Spielvorschläge der Community")
         st.write(
@@ -640,7 +678,7 @@ if menu == "🎮 Hauptseite":
         )
 
         with st.expander("➕ Neues Spiel vorschlagen", expanded=False):
-            col_s1, col_s2 = st.columns([2, 2])
+            col_s1, col_s2, col_s3 = st.columns([2, 1.5, 1.5])
             with col_s1:
                 suggested_name = st.text_input(
                     "Spielname eingeben:",
@@ -648,10 +686,16 @@ if menu == "🎮 Hauptseite":
                     placeholder="z.B. Valheim",
                 )
             with col_s2:
-                suggested_url = st.text_input(
+                suggested_img = st.text_input(
                     "Cover Bild-URL (optional):",
                     key="tab_sug_url_in",
-                    placeholder="Leer lassen für automatischen Steam-Fetch",
+                    placeholder="Leer für Steam",
+                )
+            with col_s3:
+                suggested_link = st.text_input(
+                    "Website / Store Link (optional):",
+                    key="tab_sug_link_in",
+                    placeholder="https://...",
                 )
 
             if st.button("Vorschlag einreichen", key="submit_sug_tab_btn"):
@@ -671,11 +715,15 @@ if menu == "🎮 Hauptseite":
                         st.warning("Dieses Spiel existiert bereits!")
                     else:
                         with st.spinner("Lade Spieldaten von Steam..."):
-                            if suggested_url.strip():
-                                img_url = suggested_url.strip()
-                                _, store_url = get_steam_data(clean_name)
-                            else:
-                                img_url, store_url = get_steam_data(clean_name)
+                            img_url_auto, store_url_auto, _ = get_steam_data(
+                                clean_name
+                            )
+
+                            img_final = (
+                                suggested_img.strip()
+                                if suggested_img.strip()
+                                else img_url_auto
+                            )
 
                         new_s_id = (
                             max(
@@ -688,8 +736,9 @@ if menu == "🎮 Hauptseite":
                             {
                                 "id": new_s_id,
                                 "name": clean_name,
-                                "image_url": img_url,
-                                "store_url": store_url,
+                                "image_url": img_final,
+                                "store_url": store_url_auto,
+                                "custom_store_url": suggested_link.strip(),
                                 "voters": [],
                             }
                         )
@@ -728,9 +777,18 @@ if menu == "🎮 Hauptseite":
                         sugg.get("image_url", DEFAULT_IMAGE),
                         use_container_width=True,
                     )
-                    if sugg.get("store_url"):
+
+                    c_sugg_link = sugg.get("custom_store_url", "").strip()
+                    s_sugg_link = sugg.get("store_url", "").strip()
+
+                    if c_sugg_link:
                         st.markdown(
-                            f'<a href="{sugg["store_url"]}" target="_blank" class="steam-btn">🛒 Steam Store</a>',
+                            f'<a href="{c_sugg_link}" target="_blank" class="custom-web-btn">🌐 Website / Store</a>',
+                            unsafe_allow_html=True,
+                        )
+                    elif s_sugg_link:
+                        st.markdown(
+                            f'<a href="{s_sugg_link}" target="_blank" class="steam-btn">🛒 Steam Store</a>',
                             unsafe_allow_html=True,
                         )
 
@@ -787,6 +845,9 @@ if menu == "🎮 Hauptseite":
                                         "image_url", DEFAULT_IMAGE
                                     ),
                                     "store_url": sugg.get("store_url", ""),
+                                    "custom_store_url": sugg.get(
+                                        "custom_store_url", ""
+                                    ),
                                 }
                             )
                             data["suggestions"].pop(s_idx)
@@ -943,6 +1004,9 @@ elif menu == "⚙️ Admin-Bereich":
                                         "image_url", DEFAULT_IMAGE
                                     ),
                                     "store_url": sugg.get("store_url", ""),
+                                    "custom_store_url": sugg.get(
+                                        "custom_store_url", ""
+                                    ),
                                 }
                             )
                             data["suggestions"].pop(s_idx)
@@ -1064,28 +1128,36 @@ elif menu == "⚙️ Admin-Bereich":
                 )
                 st.rerun()
 
+        # TAB 6: SPIELE VERWALTEN (INCL. STORE LINK OVERRIDE)
         with tab6:
             st.subheader("Neues Spiel direkt hinzufügen")
-            col_add1, col_add2 = st.columns([2, 2])
+            col_add1, col_add2, col_add3 = st.columns([2, 1.5, 1.5])
             with col_add1:
                 new_game = st.text_input("Spielname:", key="admin_add_game")
             with col_add2:
                 new_img_url = st.text_input(
-                    "Bild-URL / Cover-Link (optional):",
+                    "Bild-URL (optional):",
                     key="admin_add_img_url",
-                    placeholder="Leer lassen für automatischen Steam-Fetch",
+                    placeholder="Leer lassen für Steam",
+                )
+            with col_add3:
+                new_custom_link = st.text_input(
+                    "Store/Web Link Override (optional):",
+                    key="admin_add_custom_link",
+                    placeholder="https://...",
                 )
 
             if st.button("Direkt Hinzufügen (Sofort Aktiv)"):
                 if new_game.strip():
                     with st.spinner("Lade Steam-Daten..."):
-                        if new_img_url.strip():
-                            img_to_use = new_img_url.strip()
-                            _, store_to_use = get_steam_data(new_game.strip())
-                        else:
-                            img_to_use, store_to_use = get_steam_data(
-                                new_game.strip()
-                            )
+                        img_auto, store_auto, _ = get_steam_data(
+                            new_game.strip()
+                        )
+                        img_to_use = (
+                            new_img_url.strip()
+                            if new_img_url.strip()
+                            else img_auto
+                        )
 
                     new_id = (
                         max([g["id"] for g in data["games"]], default=0) + 1
@@ -1098,7 +1170,8 @@ elif menu == "⚙️ Admin-Bereich":
                             "locked": False,
                             "approved": True,
                             "image_url": img_to_use,
-                            "store_url": store_to_use,
+                            "store_url": store_auto,
+                            "custom_store_url": new_custom_link.strip(),
                         }
                     )
                     save_data(data)
@@ -1106,9 +1179,11 @@ elif menu == "⚙️ Admin-Bereich":
                     st.rerun()
 
             st.write("---")
-            st.subheader("Spiele verwalten, Bilder & Steam-Links anpassen")
+            st.subheader("Spiele verwalten, Bilder & Links anpassen")
             for idx, game in enumerate(data["games"]):
-                c_img, c_name, c_url, c_actions = st.columns([1, 1.5, 2, 1.5])
+                c_img, c_name, c_urls, c_actions = st.columns(
+                    [1, 1.5, 2.5, 1.2]
+                )
                 with c_img:
                     st.image(
                         game.get("image_url", DEFAULT_IMAGE),
@@ -1120,26 +1195,38 @@ elif menu == "⚙️ Admin-Bereich":
                         "🔄 Steam-Daten neu laden",
                         key=f"reload_steam_{game['id']}",
                     ):
-                        game["image_url"], game["store_url"] = get_steam_data(
-                            game["name"]
-                        )
+                        (
+                            game["image_url"],
+                            game["store_url"],
+                            _,
+                        ) = get_steam_data(game["name"])
                         save_data(data)
                         st.success("Steam-Daten aktualisiert!")
                         st.rerun()
 
-                with c_url:
-                    current_url = game.get("image_url", "")
-                    new_url_val = st.text_input(
+                with c_urls:
+                    curr_img = game.get("image_url", "")
+                    curr_cust_link = game.get("custom_store_url", "")
+
+                    new_img_val = st.text_input(
                         "Bild-URL Override:",
-                        value=str(current_url),
+                        value=str(curr_img),
                         key=f"url_input_{game['id']}",
                     )
+                    new_cust_link_val = st.text_input(
+                        "Store/Web Link Override (Tauscht Steam Button):",
+                        value=str(curr_cust_link),
+                        key=f"custom_link_input_{game['id']}",
+                        placeholder="https://...",
+                    )
+
                     if st.button(
-                        "💾 Bild Speichern", key=f"save_url_{game['id']}"
+                        "💾 Links Speichern", key=f"save_urls_{game['id']}"
                     ):
-                        game["image_url"] = new_url_val.strip()
+                        game["image_url"] = new_img_val.strip()
+                        game["custom_store_url"] = new_cust_link_val.strip()
                         save_data(data)
-                        st.success("Bild-URL aktualisiert!")
+                        st.success("Links gespeichert!")
                         st.rerun()
 
                 with c_actions:
