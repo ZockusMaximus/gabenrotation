@@ -23,17 +23,6 @@
             "note": ""
         },
         {
-            "id": 3,
-            "name": "Day of Defeat: Source",
-            "votes": 0,
-            "locked": false,
-            "approved": true,
-            "image_url": "https://cdn.akamai.steamstatic.com/steam/apps/300/header.jpg",
-            "store_url": "https://store.steampowered.com/app/300/",
-            "custom_store_url": "",
-            "note": ""
-        },
-        {
             "id": 5,
             "name": "PEAK",
             "votes": 0,
