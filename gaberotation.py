@@ -145,6 +145,7 @@ def load_data():
                     "image_url": img_url,
                     "store_url": store_url,
                     "custom_store_url": "",
+                    "note": "",
                 }
             )
 
@@ -180,6 +181,8 @@ def load_data():
                 g["approved"] = True
             if "custom_store_url" not in g:
                 g["custom_store_url"] = ""
+            if "note" not in g:
+                g["note"] = ""
             if "store_url" not in g or not g["store_url"]:
                 _, g["store_url"], _ = get_steam_data(g["name"])
             if "image_url" not in g or not g["image_url"]:
@@ -190,6 +193,8 @@ def load_data():
                 s["voters"] = []
             if "custom_store_url" not in s:
                 s["custom_store_url"] = ""
+            if "note" not in s:
+                s["note"] = ""
             if "store_url" not in s or not s["store_url"]:
                 _, s["store_url"], _ = get_steam_data(s["name"])
             if "image_url" not in s or not s["image_url"]:
@@ -238,9 +243,9 @@ def get_voting_time_status(data):
     # AUTOMATISCHER RESET AM SAMSTAG AB 01:00 UHR
     if weekday == 5 and hour >= 1:
         if data.get("last_reset_kw") != current_kw:
-            data["override_winner_ids"] = []  # Override beim neuen Start löschen!
-            data["last_winner_ids"] = []  # Lock freigeben
-            data["voted_users"] = {}  # Stimmen zurücksetzen
+            data["override_winner_ids"] = []
+            data["last_winner_ids"] = []
+            data["voted_users"] = {}
             data["last_reset_kw"] = current_kw
             save_data(data)
 
@@ -288,7 +293,6 @@ def format_timedelta(td):
 def get_top_winners(data):
     approved_games = [g for g in data["games"] if g.get("approved", True)]
 
-    # PRÜFUNG AUF ADMIN OVERRIDE
     if data.get("override_winner_ids"):
         override_games = [
             g for g in approved_games if g["id"] in data["override_winner_ids"]
@@ -471,6 +475,18 @@ st.markdown(
         box-shadow: 0 0 15px #00f0ff;
     }
 
+    .game-note-badge {
+        background: rgba(255, 0, 127, 0.15);
+        border: 1px solid #ff007f;
+        color: #ff77d6;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: bold;
+        margin-top: 4px;
+        display: inline-block;
+    }
+
     .time-header-box {
         background: rgba(22, 16, 44, 0.85);
         border: 1px solid #7928ca;
@@ -521,15 +537,6 @@ st.markdown(
         padding: 15px; border-radius: 12px;
         text-align: center; margin-bottom: 20px;
         box-shadow: 0 0 20px rgba(255, 0, 127, 0.3);
-    }
-
-    .winner-card {
-        background: rgba(22, 16, 44, 0.8);
-        border: 1px solid #00f0ff;
-        border-radius: 10px;
-        padding: 10px;
-        text-align: center;
-        box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
     }
 
     .stat-card {
@@ -618,7 +625,6 @@ if menu == "🎮 Hauptseite":
         )
 
         if top_winners:
-            # DYNAMISCHER TITEL: "GEWINNER" WENN OVERRIDE AKTIV
             box_title = (
                 "👑 FESTGELEGTE GEWINNER (ADMIN OVERRIDE)"
                 if is_override_active
@@ -634,32 +640,52 @@ if menu == "🎮 Hauptseite":
                 unsafe_allow_html=True,
             )
 
-            # VOLLSTÄNDIGE DARSTELLUNG MIT BILD, NAME & STORE-LINK
             cols_w = st.columns(len(top_winners))
             for w_idx, win_game in enumerate(top_winners):
                 with cols_w[w_idx]:
-                    st.markdown('<div class="winner-card">', unsafe_allow_html=True)
-                    st.image(
-                        win_game.get("image_url", DEFAULT_IMAGE),
-                        use_container_width=True,
-                    )
-                    st.markdown(f"### {win_game['name']}")
-                    st.caption(f"📊 **{win_game['votes']}** Stimmen")
+                    img_src = win_game.get("image_url", DEFAULT_IMAGE)
+                    g_name = win_game["name"]
+                    g_votes = win_game["votes"]
+                    g_note = win_game.get("note", "").strip()
 
                     c_link = win_game.get("custom_store_url", "").strip()
                     s_link = win_game.get("store_url", "").strip()
 
                     if c_link:
-                        st.markdown(
-                            f'<a href="{c_link}" target="_blank" class="custom-web-btn">🌐 Website / Store</a>',
-                            unsafe_allow_html=True,
-                        )
+                        btn_html = f'<a href="{c_link}" target="_blank" class="custom-web-btn">🌐 Website / Store</a>'
                     elif s_link:
-                        st.markdown(
-                            f'<a href="{s_link}" target="_blank" class="steam-btn">🛒 Steam Store</a>',
-                            unsafe_allow_html=True,
-                        )
-                    st.markdown("</div>", unsafe_allow_html=True)
+                        btn_html = f'<a href="{s_link}" target="_blank" class="steam-btn">🛒 Steam Store</a>'
+                    else:
+                        btn_html = ""
+
+                    note_html = (
+                        f'<div class="game-note-badge">💬 {g_note}</div>'
+                        if g_note
+                        else ""
+                    )
+
+                    st.markdown(
+                        f"""
+                        <div style="
+                            background: rgba(22, 16, 44, 0.85);
+                            border: 2px solid #00f0ff;
+                            border-radius: 12px;
+                            padding: 12px;
+                            text-align: center;
+                            box-shadow: 0 0 18px rgba(0, 240, 255, 0.35), inset 0 0 10px rgba(0, 240, 255, 0.15);
+                            margin-bottom: 15px;
+                        ">
+                            <div style="height: 4px; background: #00f0ff; border-radius: 4px; box-shadow: 0 0 8px #00f0ff; margin-bottom: 10px;"></div>
+                            <img src="{img_src}" style="width:100%; border-radius:8px; margin-bottom:8px;">
+                            <h3 style="margin:5px 0; color:#ffffff; font-family:'Montserrat';">{g_name}</h3>
+                            {note_html}
+                            <div style="color:#cbd5e1; font-size:0.95rem; margin:8px 0;">📊 <b>{g_votes}</b> Stimmen</div>
+                            {btn_html}
+                            <div style="height: 4px; background: #00f0ff; border-radius: 4px; box-shadow: 0 0 8px #00f0ff; margin-top: 12px;"></div>
+                        </div>
+                    """,
+                        unsafe_allow_html=True,
+                    )
 
         st.write("---")
         st.subheader("🎮 Spieleliste")
@@ -724,6 +750,12 @@ if menu == "🎮 Hauptseite":
                 else:
                     st.markdown(f"### {game['name']}")
 
+                if game.get("note", "").strip():
+                    st.markdown(
+                        f'<div class="game-note-badge">💬 {game["note"].strip()}</div>',
+                        unsafe_allow_html=True,
+                    )
+
             with col2:
                 st.caption(f"📊 **{game['votes']}** Stimmen")
 
@@ -774,12 +806,17 @@ if menu == "🎮 Hauptseite":
         )
 
         with st.expander("➕ Neues Spiel vorschlagen", expanded=False):
-            col_s1, col_s2, col_s3 = st.columns([2, 1.5, 1.5])
+            col_s1, col_s2 = st.columns(2)
             with col_s1:
                 suggested_name = st.text_input(
                     "Spielname eingeben:",
                     key="tab_sug_name_in",
                     placeholder="z.B. Valheim",
+                )
+                suggested_note = st.text_input(
+                    "Notiz / Kommentar (optional):",
+                    key="tab_sug_note_in",
+                    placeholder="z.B. 6 Player Mod",
                 )
             with col_s2:
                 suggested_img = st.text_input(
@@ -787,7 +824,6 @@ if menu == "🎮 Hauptseite":
                     key="tab_sug_url_in",
                     placeholder="Leer für Steam",
                 )
-            with col_s3:
                 suggested_link = st.text_input(
                     "Website / Store Link (optional):",
                     key="tab_sug_link_in",
@@ -835,6 +871,7 @@ if menu == "🎮 Hauptseite":
                                 "image_url": img_final,
                                 "store_url": store_url_auto,
                                 "custom_store_url": suggested_link.strip(),
+                                "note": suggested_note.strip(),
                                 "voters": [],
                             }
                         )
@@ -890,6 +927,11 @@ if menu == "🎮 Hauptseite":
 
                 with sc_info:
                     st.markdown(f"### {sugg['name']}")
+                    if sugg.get("note", "").strip():
+                        st.markdown(
+                            f'<div class="game-note-badge">💬 {sugg["note"].strip()}</div>',
+                            unsafe_allow_html=True,
+                        )
                     st.caption(
                         f"👍 **{voters_count} / {total_players_needed}** Stimmen für Einstimmigkeit"
                     )
@@ -943,6 +985,7 @@ if menu == "🎮 Hauptseite":
                                     "custom_store_url": sugg.get(
                                         "custom_store_url", ""
                                     ),
+                                    "note": sugg.get("note", ""),
                                 }
                             )
                             data["suggestions"].pop(s_idx)
@@ -1081,20 +1124,26 @@ elif menu == "⚙️ Admin-Bereich":
             ]
         )
 
+        # TAB 1: SPIELE VERWALTEN (INCL. NOTIZEN/KOMMENTARE)
         with tab_adm_games:
-            st.subheader("🎮 Spiele verwalten, Bilder & Links anpassen")
+            st.subheader(
+                "🎮 Spiele verwalten, Bilder, Links & Notizen anpassen"
+            )
 
             st.markdown("#### Neues Spiel direkt hinzufügen")
-            col_add1, col_add2, col_add3 = st.columns([2, 1.5, 1.5])
+            col_add1, col_add2 = st.columns(2)
             with col_add1:
                 new_game = st.text_input("Spielname:", key="admin_add_game")
+                new_note = st.text_input(
+                    "Notiz / Kommentar (z.B. 6 Player Mod):",
+                    key="admin_add_note",
+                )
             with col_add2:
                 new_img_url = st.text_input(
                     "Bild-URL (optional):",
                     key="admin_add_img_url",
                     placeholder="Leer für Steam",
                 )
-            with col_add3:
                 new_custom_link = st.text_input(
                     "Store/Web Link Override (optional):",
                     key="admin_add_custom_link",
@@ -1126,6 +1175,7 @@ elif menu == "⚙️ Admin-Bereich":
                             "image_url": img_to_use,
                             "store_url": store_auto,
                             "custom_store_url": new_custom_link.strip(),
+                            "note": new_note.strip(),
                         }
                     )
                     save_data(data)
@@ -1133,7 +1183,7 @@ elif menu == "⚙️ Admin-Bereich":
                     st.rerun()
 
             st.write("---")
-            st.markdown("#### Aktuelle Spieleliste & Overrides")
+            st.markdown("#### Aktuelle Spieleliste, Links & Kommentare")
             for idx, game in enumerate(data["games"]):
                 c_img, c_name, c_urls, c_actions = st.columns(
                     [1, 1.5, 2.5, 1.2]
@@ -1161,6 +1211,7 @@ elif menu == "⚙️ Admin-Bereich":
                 with c_urls:
                     curr_img = game.get("image_url", "")
                     curr_cust_link = game.get("custom_store_url", "")
+                    curr_note = game.get("note", "")
 
                     new_img_val = st.text_input(
                         "Bild-URL Override:",
@@ -1168,19 +1219,26 @@ elif menu == "⚙️ Admin-Bereich":
                         key=f"url_input_{game['id']}",
                     )
                     new_cust_link_val = st.text_input(
-                        "Store/Web Link Override (Tauscht Steam Button):",
+                        "Store/Web Link Override:",
                         value=str(curr_cust_link),
                         key=f"custom_link_input_{game['id']}",
                         placeholder="https://...",
                     )
+                    new_note_val = st.text_input(
+                        "Notiz / Kommentar:",
+                        value=str(curr_note),
+                        key=f"note_input_{game['id']}",
+                        placeholder="z.B. 6 Player Mod",
+                    )
 
                     if st.button(
-                        "💾 Links Speichern", key=f"save_urls_{game['id']}"
+                        "💾 Änderungen Speichern", key=f"save_urls_{game['id']}"
                     ):
                         game["image_url"] = new_img_val.strip()
                         game["custom_store_url"] = new_cust_link_val.strip()
+                        game["note"] = new_note_val.strip()
                         save_data(data)
-                        st.success("Links gespeichert!")
+                        st.success("Spieldaten gespeichert!")
                         st.rerun()
 
                 with c_actions:
@@ -1207,6 +1265,7 @@ elif menu == "⚙️ Admin-Bereich":
                     unsafe_allow_html=True,
                 )
 
+        # TAB 2: SPIELER VERWALTUNG
         with tab_adm_players:
             st.subheader("👥 Spieler-Verwaltung (Dropdown & Einstimmigkeit)")
             st.write(
@@ -1248,6 +1307,7 @@ elif menu == "⚙️ Admin-Bereich":
                         st.success(f"'{p_name}' entfernt.")
                         st.rerun()
 
+        # TAB 3: VORSCHLÄGE FREIGEBEN
         with tab_adm_suggs:
             st.subheader("📩 Ausstehende Vorschläge manuell freigeben")
             if data.get("suggestions"):
@@ -1260,6 +1320,8 @@ elif menu == "⚙️ Admin-Bereich":
                         )
                     with ca:
                         st.write(f"🎮 **{sugg['name']}**")
+                        if sugg.get("note", "").strip():
+                            st.caption(f"💬 Notiz: {sugg['note'].strip()}")
                     with cb:
                         if st.button(
                             "✅ Sofort Freigeben", key=f"appr_{sugg['id']}"
@@ -1282,6 +1344,7 @@ elif menu == "⚙️ Admin-Bereich":
                                     "custom_store_url": sugg.get(
                                         "custom_store_url", ""
                                     ),
+                                    "note": sugg.get("note", ""),
                                 }
                             )
                             data["suggestions"].pop(s_idx)
@@ -1297,6 +1360,7 @@ elif menu == "⚙️ Admin-Bereich":
             else:
                 st.info("Keine Vorschläge vorhanden.")
 
+        # TAB 4: GEWINNER OVERRIDE
         with tab_adm_win_override:
             st.subheader("👑 Gewinner manuell festlegen")
             game_options = {
@@ -1331,9 +1395,12 @@ elif menu == "⚙️ Admin-Bereich":
                 if st.button("❌ Override Aufheben"):
                     data["override_winner_ids"] = []
                     save_data(data)
-                    st.info("Override entfernt. Es zählen wieder normale Stimmen.")
+                    st.info(
+                        "Override entfernt. Es zählen wieder normale Stimmen."
+                    )
                     st.rerun()
 
+        # TAB 5: VOTE STATUS OVERRIDE
         with tab_adm_status_override:
             st.subheader("🔓 Manuelles Öffnen / Schließen des Votings")
             current_status = data.get("manual_status_override", "AUTO")
@@ -1386,6 +1453,7 @@ elif menu == "⚙️ Admin-Bereich":
                     st.info("Automatischer Zeitplan wiederhergestellt.")
                     st.rerun()
 
+        # TAB 6: WOCHE ABSCHLIESSEN
         with tab_adm_close_week:
             st.subheader("🔄 Woche Abschließen & Historie Speichern")
             st.write(
@@ -1445,6 +1513,7 @@ elif menu == "⚙️ Admin-Bereich":
                 )
                 st.rerun()
 
+        # TAB 7: LOGS & INDEX
         with tab_adm_logs:
             st.subheader("📋 Registrierter Voting-Index")
             if data["vote_history"]:
@@ -1463,6 +1532,7 @@ elif menu == "⚙️ Admin-Bereich":
             else:
                 st.caption("Keine Status-Übersteuerungen vorhanden.")
 
+        # TAB 8: BACKUP & RECOVERY (GANZ HINTEN)
         with tab_adm_backup:
             st.subheader("💾 Manuelles Daten-Backup & Wiederherstellung")
             col_bk1, col_bk2 = st.columns(2)
