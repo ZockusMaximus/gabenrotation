@@ -14,7 +14,7 @@
         {
             "id": 2,
             "name": "Team Fortress 2",
-            "votes": 0,
+            "votes": 1,
             "locked": false,
             "approved": true,
             "image_url": "https://cdn.akamai.steamstatic.com/steam/apps/440/header.jpg",
@@ -59,6 +59,9 @@
     "voted_users": {
         "alexander": [
             6
+        ],
+        "stefan": [
+            2
         ]
     },
     "last_winner_ids": [],
@@ -112,6 +115,13 @@
             "user": "Alexander",
             "game_id": 6,
             "game_name": "Repo"
+        },
+        {
+            "timestamp": "2026-08-01 01:05:08",
+            "kw": 31,
+            "user": "Stefan",
+            "game_id": 2,
+            "game_name": "Team Fortress 2"
         }
     ],
     "randomizer_logs": [],
