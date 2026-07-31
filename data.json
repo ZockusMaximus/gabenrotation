@@ -145,7 +145,8 @@
             "note": "",
             "reason": "Weil mega geil",
             "voters": [],
-            "author": ""
+            "author": "",
+            "against_voters": []
         }
     ],
     "manual_status_override": "AUTO",
