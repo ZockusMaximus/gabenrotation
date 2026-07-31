@@ -183,5 +183,6 @@
         1,
         5
     ],
-    "last_reset_kw": 0
+    "last_reset_kw": 0,
+    "ban_requests": []
 }
