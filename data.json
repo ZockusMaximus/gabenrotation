@@ -70,7 +70,8 @@
             2,
             6,
             7
-        ]
+        ],
+        "sascha": []
     },
     "last_winner_ids": [],
     "players": [
@@ -178,6 +179,12 @@
             "kw": 31,
             "user": "Marcel",
             "voted_games_count": 3
+        },
+        {
+            "timestamp": "2026-08-01 01:21:31",
+            "kw": 31,
+            "user": "Sascha",
+            "voted_games_count": 0
         }
     ],
     "randomizer_logs": [],
