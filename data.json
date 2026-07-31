@@ -7,7 +7,8 @@
             "locked": false,
             "approved": true,
             "image_url": "https://cdn.akamai.steamstatic.com/steam/apps/730/header.jpg",
-            "store_url": "https://store.steampowered.com/app/730/"
+            "store_url": "https://store.steampowered.com/app/730/",
+            "custom_store_url": ""
         },
         {
             "id": 2,
@@ -16,7 +17,8 @@
             "locked": false,
             "approved": true,
             "image_url": "https://cdn.akamai.steamstatic.com/steam/apps/440/header.jpg",
-            "store_url": "https://store.steampowered.com/app/440/"
+            "store_url": "https://store.steampowered.com/app/440/",
+            "custom_store_url": ""
         },
         {
             "id": 3,
@@ -25,7 +27,8 @@
             "locked": false,
             "approved": true,
             "image_url": "https://cdn.akamai.steamstatic.com/steam/apps/300/header.jpg",
-            "store_url": "https://store.steampowered.com/app/300/"
+            "store_url": "https://store.steampowered.com/app/300/",
+            "custom_store_url": ""
         },
         {
             "id": 4,
@@ -34,7 +37,8 @@
             "locked": false,
             "approved": true,
             "image_url": "https://cdn.akamai.steamstatic.com/steam/apps/1466860/header.jpg",
-            "store_url": "https://store.steampowered.com/app/1466860/"
+            "store_url": "https://store.steampowered.com/app/1466860/",
+            "custom_store_url": ""
         },
         {
             "id": 5,
@@ -43,7 +47,8 @@
             "locked": false,
             "approved": true,
             "image_url": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/3527290/31bac6b2eccf09b368f5e95ce510bae2baf3cfcd/header.jpg?t=1775581133",
-            "store_url": "https://store.steampowered.com/app/3527290/"
+            "store_url": "https://store.steampowered.com/app/3527290/",
+            "custom_store_url": ""
         },
         {
             "id": 6,
@@ -52,7 +57,8 @@
             "locked": false,
             "approved": true,
             "image_url": "https://cdn.akamai.steamstatic.com/steam/apps/3241660/header.jpg",
-            "store_url": "https://store.steampowered.com/app/3241660/"
+            "store_url": "https://store.steampowered.com/app/3241660/",
+            "custom_store_url": ""
         },
         {
             "id": 7,
@@ -61,7 +67,8 @@
             "locked": false,
             "approved": true,
             "image_url": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/4704690/163e2a742e5fb8e1f5d1e3a890da98f04ab809d4/header.jpg?t=1785107783",
-            "store_url": "https://store.steampowered.com/app/4704690/"
+            "store_url": "https://store.steampowered.com/app/4704690/",
+            "custom_store_url": ""
         },
         {
             "id": 8,
@@ -70,7 +77,8 @@
             "locked": false,
             "approved": true,
             "image_url": "https://cdn.akamai.steamstatic.com/steam/apps/739630/header.jpg",
-            "store_url": "https://store.steampowered.com/app/739630/"
+            "store_url": "https://store.steampowered.com/app/739630/",
+            "custom_store_url": ""
         },
         {
             "id": 9,
@@ -79,7 +87,8 @@
             "locked": false,
             "approved": true,
             "image_url": "https://cdn.akamai.steamstatic.com/steam/apps/286160/header.jpg",
-            "store_url": "https://store.steampowered.com/app/286160/"
+            "store_url": "https://store.steampowered.com/app/286160/",
+            "custom_store_url": ""
         },
         {
             "id": 10,
@@ -88,7 +97,8 @@
             "locked": false,
             "approved": true,
             "image_url": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/3560670/a7ac381491a4a56cb2e91e326f3ea53bb4380f41/header.jpg?t=1785166193",
-            "store_url": "https://store.steampowered.com/app/3560670/"
+            "store_url": "https://store.steampowered.com/app/3560670/",
+            "custom_store_url": "https://openfront.io/"
         },
         {
             "id": 11,
@@ -97,7 +107,18 @@
             "locked": false,
             "approved": true,
             "image_url": "https://sm64coopdx.com/logo.png",
-            "store_url": "https://store.steampowered.com/search/?term=SM64%20COOP%20dx"
+            "store_url": "https://store.steampowered.com/search/?term=SM64%20COOP%20dx",
+            "custom_store_url": "https://sm64coopdx.com/"
+        },
+        {
+            "id": 12,
+            "name": "Valheim",
+            "votes": 0,
+            "locked": false,
+            "approved": true,
+            "image_url": "https://cdn.akamai.steamstatic.com/steam/apps/892970/header.jpg",
+            "store_url": "https://store.steampowered.com/app/892970/",
+            "custom_store_url": ""
         }
     ],
     "voted_users": {},
