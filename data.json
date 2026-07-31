@@ -127,5 +127,8 @@
     "randomizer_logs": [],
     "admin_status_logs": [],
     "weekly_winner_history": [],
-    "override_winner_ids": []
+    "override_winner_ids": [
+        1,
+        5
+    ]
 }
