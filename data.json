@@ -69,7 +69,22 @@
         "Jan",
         "Stefan"
     ],
-    "suggestions": [],
+    "suggestions": [
+        {
+            "id": 1,
+            "name": "OpenFront",
+            "author": "Stefan",
+            "image_url": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/3560670/a7ac381491a4a56cb2e91e326f3ea53bb4380f41/header.jpg?t=1785166193",
+            "store_url": "https://store.steampowered.com/app/3560670/",
+            "custom_store_url": "https://openfront.io/",
+            "note": "Privates oder Offenes Game mit Randoms",
+            "reason": "Bois ! ich glaube Open Front könnte richtig Bock machen. Das Spiel ist irgendwie anders als die meisten Strategiespiele weil ständig irgendwas Unerwartetes passiert und man nur als Team wirklich weiterkommt. Ich glaube das könnte für uns richtig lustige Abende mit jeder Menge Chaos geben.\n\nSchaut euch die Website an!",
+            "voters": [
+                "Stefan"
+            ],
+            "against_voters": []
+        }
+    ],
     "manual_status_override": "AUTO",
     "vote_history": [],
     "randomizer_logs": [],
