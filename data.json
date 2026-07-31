@@ -147,6 +147,20 @@
                 "Sascha"
             ],
             "against_voters": []
+        },
+        {
+            "id": 5,
+            "name": "Pummel Party",
+            "author": "Alexander",
+            "image_url": "https://cdn.akamai.steamstatic.com/steam/apps/880940/header.jpg",
+            "store_url": "https://store.steampowered.com/app/880940/",
+            "custom_store_url": "https://store.steampowered.com/app/880940/Pummel_Party/",
+            "note": "",
+            "reason": "",
+            "voters": [
+                "Alexander"
+            ],
+            "against_voters": []
         }
     ],
     "manual_status_override": "AUTO",
