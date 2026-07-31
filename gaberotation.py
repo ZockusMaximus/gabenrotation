@@ -194,6 +194,8 @@ def load_data():
         for s in data.get("suggestions", []):
             if "voters" not in s:
                 s["voters"] = []
+            if "against_voters" not in s:
+                s["against_voters"] = []
             if "custom_store_url" not in s:
                 s["custom_store_url"] = ""
             if "note" not in s:
@@ -201,7 +203,7 @@ def load_data():
             if "reason" not in s:
                 s["reason"] = ""
             if "author" not in s:
-                s["author"] = ""
+                s["author"] = "Unbekannt"
             if "store_url" not in s or not s["store_url"]:
                 _, s["store_url"], _ = get_steam_data(s["name"])
             if "image_url" not in s or not s["image_url"]:
@@ -210,10 +212,12 @@ def load_data():
         for b in data.get("ban_requests", []):
             if "voters" not in b:
                 b["voters"] = []
+            if "against_voters" not in b:
+                b["against_voters"] = []
             if "reason" not in b:
                 b["reason"] = ""
             if "author" not in b:
-                b["author"] = ""
+                b["author"] = "Unbekannt"
 
         if isinstance(data.get("voted_users"), list):
             data["voted_users"] = {}
@@ -846,7 +850,7 @@ if menu == "🎮 Hauptseite":
                 unsafe_allow_html=True,
             )
 
-    # TAB 2: SPIELVORSCHLÄGE & BANNS MIT BEGRÜNDUNGSFELDERN
+    # TAB 2: SPIELVORSCHLÄGE & BANNS MIT ERSTELLER & DAGEGEN-VOTE
     with tab_suggestions:
         player_list = data.get("players", DEFAULT_USERS)
         total_players_needed = len(player_list)
@@ -857,6 +861,11 @@ if menu == "🎮 Hauptseite":
         )
 
         with st.expander("➕ Neues Spiel vorschlagen", expanded=False):
+            sug_author = st.selectbox(
+                "Dein Name (Ersteller):",
+                options=["-- Bitte wählen --"] + player_list,
+                key="sug_author_select",
+            )
             col_s1, col_s2 = st.columns(2)
             with col_s1:
                 suggested_name = st.text_input(
@@ -886,7 +895,11 @@ if menu == "🎮 Hauptseite":
                 )
 
             if st.button("Vorschlag einreichen", key="submit_sug_tab_btn"):
-                if suggested_name.strip():
+                if sug_author == "-- Bitte wählen --":
+                    st.error(
+                        "Bitte wähle deinen Namen aus, um den Vorschlag einzureichen!"
+                    )
+                elif suggested_name.strip():
                     existing_games = [
                         g["name"].lower() for g in data.get("games", [])
                     ]
@@ -905,7 +918,6 @@ if menu == "🎮 Hauptseite":
                             img_url_auto, store_url_auto, _ = get_steam_data(
                                 clean_name
                             )
-
                             img_final = (
                                 suggested_img.strip()
                                 if suggested_img.strip()
@@ -919,25 +931,30 @@ if menu == "🎮 Hauptseite":
                             )
                             + 1
                         )
+                        # ERSTELLER WIRD DIREKT ALS ERSTE DAFÜR-STIMME IN DER LISTE GESPEICHERT
                         data["suggestions"].append(
                             {
                                 "id": new_s_id,
                                 "name": clean_name,
+                                "author": sug_author,
                                 "image_url": img_final,
                                 "store_url": store_url_auto,
                                 "custom_store_url": suggested_link.strip(),
                                 "note": suggested_note.strip(),
                                 "reason": suggested_reason.strip(),
-                                "voters": [],
+                                "voters": [sug_author],
+                                "against_voters": [],
                             }
                         )
                         save_data(data)
-                        st.success(f"Vorschlag '{clean_name}' eingereicht!")
+                        st.success(
+                            f"Vorschlag '{clean_name}' von {sug_author} eingereicht und automatisch mit 1x DAFÜR-Stimme gewertet!"
+                        )
                         st.rerun()
 
         st.write("---")
         selected_s_user = st.selectbox(
-            "Wähle deinen Namen für Vorschläge & Banns:",
+            "Wähle deinen Namen für Abstimmung von Vorschlägen & Banns:",
             options=["-- Bitte wählen --"] + player_list,
             key="tab_sug_user_select",
         )
@@ -948,14 +965,20 @@ if menu == "🎮 Hauptseite":
         if data.get("suggestions"):
             st.markdown("### Ausstehende Spielvorschläge")
             for s_idx, sugg in enumerate(list(data["suggestions"])):
-                sc_img, sc_info, sc_vote = st.columns([1.5, 3, 2])
-                has_voted_sugg = (
-                    s_user_name.lower()
-                    in [v.lower() for v in sugg.get("voters", [])]
+                sc_img, sc_info, sc_vote = st.columns([1.5, 2.5, 2])
+                voters_for = sugg.get("voters", [])
+                voters_against = sugg.get("against_voters", [])
+
+                has_voted_for = (
+                    s_user_name.lower() in [v.lower() for v in voters_for]
                     if s_user_name
                     else False
                 )
-                voters_count = len(sugg.get("voters", []))
+                has_voted_against = (
+                    s_user_name.lower() in [v.lower() for v in voters_against]
+                    if s_user_name
+                    else False
+                )
 
                 with sc_img:
                     st.image(
@@ -965,6 +988,8 @@ if menu == "🎮 Hauptseite":
 
                 with sc_info:
                     st.markdown(f"### {sugg['name']}")
+                    st.caption(f"👤 Erstellt von: **{sugg.get('author', 'Unbekannt')}**")
+
                     if sugg.get("note", "").strip():
                         st.markdown(
                             f'<div class="game-note-badge">💬 {sugg["note"].strip()}</div>',
@@ -977,68 +1002,68 @@ if menu == "🎮 Hauptseite":
                         )
 
                     st.caption(
-                        f"👍 **{voters_count} / {total_players_needed}** Stimmen für Einstimmigkeit"
+                        f"👍 **{len(voters_for)} / {total_players_needed}** Dafür | 👎 **{len(voters_against)}** Dagegen"
                     )
-                    if sugg.get("voters"):
-                        st.write(
-                            f"Bisher dafür gestimmt: *{', '.join(sugg['voters'])}*"
-                        )
+                    if voters_for:
+                        st.write(f"Dafür: *{', '.join(voters_for)}*")
+                    if voters_against:
+                        st.write(f"Dagegen: *{', '.join(voters_against)}*")
 
                 with sc_vote:
-                    btn_disabled = not s_user_name or has_voted_sugg
-                    btn_txt = (
-                        "Dafür gestimmt ✅"
-                        if has_voted_sugg
-                        else "Dafür stimmen 👍"
-                    )
-
-                    if st.button(
-                        btn_txt,
-                        key=f"tab_sug_btn_{sugg['id']}",
-                        disabled=btn_disabled,
-                    ):
-                        sugg["voters"].append(s_user_name)
-                        current_voters_lower = [
-                            v.lower() for v in sugg["voters"]
-                        ]
-                        all_players_lower = [p.lower() for p in player_list]
-
-                        if all(
-                            p in current_voters_lower for p in all_players_lower
+                    c_btn1, c_btn2 = st.columns(2)
+                    with c_btn1:
+                        if st.button(
+                            "Dafür 👍",
+                            key=f"tab_sug_for_{sugg['id']}",
+                            disabled=not s_user_name or has_voted_for,
                         ):
-                            new_g_id = (
-                                max([g["id"] for g in data["games"]], default=0)
-                                + 1
-                            )
-                            data["games"].append(
-                                {
-                                    "id": new_g_id,
-                                    "name": sugg["name"],
-                                    "votes": 0,
-                                    "locked": False,
-                                    "approved": True,
-                                    "image_url": sugg.get(
-                                        "image_url", DEFAULT_IMAGE
-                                    ),
-                                    "store_url": sugg.get("store_url", ""),
-                                    "custom_store_url": sugg.get(
-                                        "custom_store_url", ""
-                                    ),
-                                    "note": sugg.get("note", ""),
-                                }
-                            )
-                            data["suggestions"].pop(s_idx)
+                            if s_user_name in voters_against:
+                                voters_against.remove(s_user_name)
+                            if s_user_name not in voters_for:
+                                voters_for.append(s_user_name)
+
+                            # Prüfen auf Einstimmigkeit
+                            current_voters_lower = [v.lower() for v in voters_for]
+                            all_players_lower = [p.lower() for p in player_list]
+
+                            if all(p in current_voters_lower for p in all_players_lower):
+                                new_g_id = max([g["id"] for g in data["games"]], default=0) + 1
+                                data["games"].append(
+                                    {
+                                        "id": new_g_id,
+                                        "name": sugg["name"],
+                                        "votes": 0,
+                                        "locked": False,
+                                        "approved": True,
+                                        "image_url": sugg.get("image_url", DEFAULT_IMAGE),
+                                        "store_url": sugg.get("store_url", ""),
+                                        "custom_store_url": sugg.get("custom_store_url", ""),
+                                        "note": sugg.get("note", ""),
+                                    }
+                                )
+                                data["suggestions"].pop(s_idx)
+                                save_data(data)
+                                st.balloons()
+                                st.success(f"🎉 EINSTIMMIG! '{sugg['name']}' wurde in die Hauptliste aufgenommen!")
+                                st.rerun()
+                            else:
+                                save_data(data)
+                                st.success(f"Stimme (Dafür) von {s_user_name} registriert!")
+                                st.rerun()
+
+                    with c_btn2:
+                        if st.button(
+                            "Dagegen 👎",
+                            key=f"tab_sug_against_{sugg['id']}",
+                            disabled=not s_user_name or has_voted_against,
+                        ):
+                            if s_user_name in voters_for:
+                                voters_for.remove(s_user_name)
+                            if s_user_name not in voters_against:
+                                voters_against.append(s_user_name)
+
                             save_data(data)
-                            st.balloons()
-                            st.success(
-                                f"🎉 EINSTIMMIG! '{sugg['name']}' wurde in die Hauptliste aufgenommen!"
-                            )
-                            st.rerun()
-                        else:
-                            save_data(data)
-                            st.success(
-                                f"Stimme von {s_user_name} registriert!"
-                            )
+                            st.info(f"Stimme (Dagegen) von {s_user_name} registriert.")
                             st.rerun()
 
                 st.markdown(
@@ -1046,7 +1071,7 @@ if menu == "🎮 Hauptseite":
                     unsafe_allow_html=True,
                 )
 
-        # SPIELE BANNEN MIT VERTEIDIGUNGSFELD
+        # SPIELE BANNEN
         st.write("---")
         st.subheader("🚫 Spiele aus dem Voting verbannen (Bannen)")
         st.write(
@@ -1055,6 +1080,11 @@ if menu == "🎮 Hauptseite":
         )
 
         with st.expander("➕ Spiel zum Bannen vorschlagen", expanded=False):
+            ban_author = st.selectbox(
+                "Dein Name (Antragsteller):",
+                options=["-- Bitte wählen --"] + player_list,
+                key="ban_author_select",
+            )
             active_game_names = [
                 g["name"]
                 for g in data.get("games", [])
@@ -1072,7 +1102,9 @@ if menu == "🎮 Hauptseite":
             )
 
             if st.button("Bann-Antrag stellen"):
-                if selected_ban_game != "-- Bitte wählen --":
+                if ban_author == "-- Bitte wählen --":
+                    st.error("Bitte wähle deinen Namen aus!")
+                elif selected_ban_game != "-- Bitte wählen --":
                     existing_bans = [
                         b["name"].lower()
                         for b in data.get("ban_requests", [])
@@ -1093,13 +1125,15 @@ if menu == "🎮 Hauptseite":
                                 )
                                 + 1,
                                 "name": selected_ban_game,
+                                "author": ban_author,
                                 "reason": ban_reason_input.strip(),
-                                "voters": [],
+                                "voters": [ban_author],
+                                "against_voters": [],
                             }
                         )
                         save_data(data)
                         st.success(
-                            f"Bann-Antrag für '{selected_ban_game}' erstellt!"
+                            f"Bann-Antrag für '{selected_ban_game}' von {ban_author} erstellt und mit 1x Stimme gewertet!"
                         )
                         st.rerun()
 
@@ -1107,16 +1141,23 @@ if menu == "🎮 Hauptseite":
             st.markdown("### Aktive Bann-Anträge")
             for b_idx, ban in enumerate(list(data["ban_requests"])):
                 cb_a, cb_b = st.columns([3, 2])
-                has_voted_ban = (
-                    s_user_name.lower()
-                    in [v.lower() for v in ban.get("voters", [])]
+                ban_voters_for = ban.get("voters", [])
+                ban_voters_against = ban.get("against_voters", [])
+
+                has_voted_ban_for = (
+                    s_user_name.lower() in [v.lower() for v in ban_voters_for]
                     if s_user_name
                     else False
                 )
-                ban_voters_cnt = len(ban.get("voters", []))
+                has_voted_ban_against = (
+                    s_user_name.lower() in [v.lower() for v in ban_voters_against]
+                    if s_user_name
+                    else False
+                )
 
                 with cb_a:
                     st.markdown(f"🚫 **{ban['name']}**")
+                    st.caption(f"👤 Antrag von: **{ban.get('author', 'Unbekannt')}**")
                     if ban.get("reason", "").strip():
                         st.markdown(
                             f'<div class="reason-box-red">🔴 <b>Verteidigung / Grund:</b> {ban["reason"].strip()}</div>',
@@ -1124,50 +1165,61 @@ if menu == "🎮 Hauptseite":
                         )
 
                     st.caption(
-                        f"👍 **{ban_voters_cnt} / {total_players_needed}** Stimmen für Bann"
+                        f"👍 **{len(ban_voters_for)} / {total_players_needed}** Für Bann | 👎 **{len(ban_voters_against)}** Gegen Bann"
                     )
-                    if ban.get("voters"):
-                        st.write(
-                            f"Bisher dafür gestimmt: *{', '.join(ban['voters'])}*"
-                        )
+                    if ban_voters_for:
+                        st.write(f"Für Bann: *{', '.join(ban_voters_for)}*")
+                    if ban_voters_against:
+                        st.write(f"Gegen Bann: *{', '.join(ban_voters_against)}*")
 
                 with cb_b:
-                    b_btn_disabled = not s_user_name or has_voted_ban
-                    b_btn_txt = (
-                        "Für Bann gestimmt ✅"
-                        if has_voted_ban
-                        else "Für Bann stimmen 🚫"
-                    )
-
-                    if st.button(
-                        b_btn_txt,
-                        key=f"ban_btn_{ban['id']}",
-                        disabled=b_btn_disabled,
-                    ):
-                        ban["voters"].append(s_user_name)
-                        current_ban_voters = [v.lower() for v in ban["voters"]]
-                        all_players_lower = [p.lower() for p in player_list]
-
-                        if all(
-                            p in current_ban_voters for p in all_players_lower
+                    cb_btn1, cb_btn2 = st.columns(2)
+                    with cb_btn1:
+                        if st.button(
+                            "Für Bann 🚫",
+                            key=f"ban_for_{ban['id']}",
+                            disabled=not s_user_name or has_voted_ban_for,
                         ):
-                            data["games"] = [
-                                g
-                                for g in data["games"]
-                                if g["name"].lower() != ban["name"].lower()
-                            ]
-                            data["ban_requests"].pop(b_idx)
+                            if s_user_name in ban_voters_against:
+                                ban_voters_against.remove(s_user_name)
+                            if s_user_name not in ban_voters_for:
+                                ban_voters_for.append(s_user_name)
+
+                            current_ban_voters = [v.lower() for v in ban_voters_for]
+                            all_players_lower = [p.lower() for p in player_list]
+
+                            if all(p in current_ban_voters for p in all_players_lower):
+                                data["games"] = [
+                                    g
+                                    for g in data["games"]
+                                    if g["name"].lower() != ban["name"].lower()
+                                ]
+                                data["ban_requests"].pop(b_idx)
+                                save_data(data)
+                                st.warning(
+                                    f"🚫 EINSTIMMIG GEBANNT! '{ban['name']}' wurde aus der Spieleliste entfernt!"
+                                )
+                                st.rerun()
+                            else:
+                                save_data(data)
+                                st.success(f"Bann-Stimme von {s_user_name} registriert!")
+                                st.rerun()
+
+                    with cb_btn2:
+                        if st.button(
+                            "Gegen Bann 🛡️",
+                            key=f"ban_against_{ban['id']}",
+                            disabled=not s_user_name or has_voted_ban_against,
+                        ):
+                            if s_user_name in ban_voters_for:
+                                ban_voters_for.remove(s_user_name)
+                            if s_user_name not in ban_voters_against:
+                                ban_voters_against.append(s_user_name)
+
                             save_data(data)
-                            st.warning(
-                                f"🚫 EINSTIMMIG GEBANNT! '{ban['name']}' wurde aus der Spieleliste entfernt!"
-                            )
+                            st.info(f"Stimme gegen Bann von {s_user_name} registriert.")
                             st.rerun()
-                        else:
-                            save_data(data)
-                            st.success(
-                                f"Bann-Stimme von {s_user_name} registriert!"
-                            )
-                            st.rerun()
+
                 st.markdown(
                     '<hr style="border-color:#2a244d; margin:4px 0;">',
                     unsafe_allow_html=True,
@@ -1475,7 +1527,7 @@ elif menu == "⚙️ Admin-Bereich":
                         st.success(f"'{p_name}' entfernt.")
                         st.rerun()
 
-        # TAB 3: VORSCHLÄGE & BANNS FREIGEBEN (MIT BEGRÜNDUNGEN IM ADMIN AREA)
+        # TAB 3: VORSCHLÄGE & BANNS FREIGEBEN (MIT ERSTELLER)
         with tab_adm_suggs:
             st.subheader("📩 Ausstehende Vorschläge & Banns verwalten")
 
@@ -1490,6 +1542,7 @@ elif menu == "⚙️ Admin-Bereich":
                         )
                     with ca:
                         st.write(f"🎮 **{sugg['name']}**")
+                        st.caption(f"👤 Erstellt von: **{sugg.get('author', 'Unbekannt')}**")
                         if sugg.get("note", "").strip():
                             st.caption(f"💬 Notiz: {sugg['note'].strip()}")
                         if sugg.get("reason", "").strip():
@@ -1542,13 +1595,14 @@ elif menu == "⚙️ Admin-Bereich":
                     cba, cbb, cbc = st.columns([3, 1, 1])
                     with cba:
                         st.write(f"🚫 **{ban['name']}**")
+                        st.caption(f"👤 Antrag von: **{ban.get('author', 'Unbekannt')}**")
                         if ban.get("reason", "").strip():
                             st.markdown(
                                 f'<div class="reason-box-red">🔴 <b>Verteidigung / Grund:</b> {ban["reason"].strip()}</div>',
                                 unsafe_allow_html=True,
                             )
                         st.caption(
-                            f"Stimmen: {len(ban.get('voters', []))} / {len(data.get('players', []))}"
+                            f"Stimmen: {len(ban.get('voters', []))} Dafür / {len(ban.get('against_voters', []))} Dagegen"
                         )
                     with cbb:
                         if st.button(
