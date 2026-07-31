@@ -36,7 +36,7 @@
         {
             "id": 6,
             "name": "Repo",
-            "votes": 1,
+            "votes": 2,
             "locked": false,
             "approved": true,
             "image_url": "https://cdn.akamai.steamstatic.com/steam/apps/3241660/header.jpg",
@@ -47,7 +47,7 @@
         {
             "id": 7,
             "name": "MECCHA CHAMELEON",
-            "votes": 0,
+            "votes": 1,
             "locked": false,
             "approved": true,
             "image_url": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/4704690/163e2a742e5fb8e1f5d1e3a890da98f04ab809d4/header.jpg?t=1785107783",
@@ -61,7 +61,9 @@
             6
         ],
         "stefan": [
-            2
+            2,
+            6,
+            7
         ]
     },
     "last_winner_ids": [],
@@ -136,6 +138,12 @@
             "user": "Stefan",
             "game_id": 2,
             "game_name": "Team Fortress 2"
+        },
+        {
+            "timestamp": "2026-08-01 01:15:37",
+            "kw": 31,
+            "user": "Stefan",
+            "voted_games_count": 3
         }
     ],
     "randomizer_logs": [],
