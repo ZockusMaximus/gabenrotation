@@ -78,17 +78,6 @@
             "note": ""
         },
         {
-            "id": 10,
-            "name": "OpenFront",
-            "votes": 0,
-            "locked": false,
-            "approved": true,
-            "image_url": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/3560670/a7ac381491a4a56cb2e91e326f3ea53bb4380f41/header.jpg?t=1785166193",
-            "store_url": "https://store.steampowered.com/app/3560670/",
-            "custom_store_url": "https://openfront.io/",
-            "note": ""
-        },
-        {
             "id": 11,
             "name": "SM64 COOP dx",
             "votes": 0,
