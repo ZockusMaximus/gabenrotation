@@ -4,7 +4,7 @@
             "id": 1,
             "name": "Counter-Strike 2",
             "votes": 0,
-            "locked": false,
+            "locked": true,
             "approved": true,
             "image_url": "https://cdn.akamai.steamstatic.com/steam/apps/730/header.jpg",
             "store_url": "https://store.steampowered.com/app/730/",
