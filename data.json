@@ -143,9 +143,25 @@
         {
             "timestamp": "2026-07-31 15:19:52",
             "action": "Woche abgeschlossen -> Voting AUTOMATISCH MANUELL GESCHLOSSEN"
+        },
+        {
+            "timestamp": "2026-07-31 15:20:35",
+            "action": "Woche abgeschlossen -> Voting AUTOMATISCH MANUELL GESCHLOSSEN"
         }
     ],
     "weekly_winner_history": [
+        {
+            "date": "31.07.2026",
+            "kw": 31,
+            "winners": [
+                "Counter-Strike 2",
+                "PEAK"
+            ],
+            "voters": {
+                "Counter-Strike 2": [],
+                "PEAK": []
+            }
+        },
         {
             "date": "31.07.2026",
             "kw": 31,
