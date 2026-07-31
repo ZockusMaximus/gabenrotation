@@ -135,20 +135,7 @@
         "Jan",
         "Stefan"
     ],
-    "suggestions": [
-        {
-            "id": 1,
-            "name": "Valheim",
-            "image_url": "https://cdn.akamai.steamstatic.com/steam/apps/892970/header.jpg",
-            "store_url": "https://store.steampowered.com/app/892970/",
-            "custom_store_url": "",
-            "note": "",
-            "reason": "Weil mega geil",
-            "voters": [],
-            "author": "",
-            "against_voters": []
-        }
-    ],
+    "suggestions": [],
     "manual_status_override": "AUTO",
     "vote_history": [],
     "randomizer_logs": [],
