@@ -109,16 +109,6 @@
             "image_url": "https://sm64coopdx.com/logo.png",
             "store_url": "https://store.steampowered.com/search/?term=SM64%20COOP%20dx",
             "custom_store_url": "https://sm64coopdx.com/"
-        },
-        {
-            "id": 12,
-            "name": "Valheim",
-            "votes": 0,
-            "locked": false,
-            "approved": true,
-            "image_url": "https://cdn.akamai.steamstatic.com/steam/apps/892970/header.jpg",
-            "store_url": "https://store.steampowered.com/app/892970/",
-            "custom_store_url": ""
         }
     ],
     "voted_users": {},
