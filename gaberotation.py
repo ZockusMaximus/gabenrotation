@@ -651,41 +651,44 @@ if menu == "🎮 Hauptseite":
                     c_link = win_game.get("custom_store_url", "").strip()
                     s_link = win_game.get("store_url", "").strip()
 
-                    if c_link:
-                        btn_html = f'<a href="{c_link}" target="_blank" class="custom-web-btn">🌐 Website / Store</a>'
-                    elif s_link:
-                        btn_html = f'<a href="{s_link}" target="_blank" class="steam-btn">🛒 Steam Store</a>'
-                    else:
-                        btn_html = ""
+                    # CONTAINER FÜR GEWINNERKARTE MIT NEON BORDERN
+                    with st.container():
+                        st.markdown(
+                            """<div style="height: 4px; background: #00f0ff; border-radius: 4px; box-shadow: 0 0 8px #00f0ff; margin-bottom: 8px;"></div>""",
+                            unsafe_allow_html=True,
+                        )
+                        st.image(img_src, use_container_width=True)
+                        st.markdown(
+                            f"<h3 style='margin:5px 0; text-align:center;'>{g_name}</h3>",
+                            unsafe_allow_html=True,
+                        )
 
-                    note_html = (
-                        f'<div class="game-note-badge">💬 {g_note}</div>'
-                        if g_note
-                        else ""
-                    )
+                        if g_note:
+                            st.markdown(
+                                f"<div style='text-align:center;'><span class='game-note-badge'>💬 {g_note}</span></div>",
+                                unsafe_allow_html=True,
+                            )
 
-                    st.markdown(
-                        f"""
-                        <div style="
-                            background: rgba(22, 16, 44, 0.85);
-                            border: 2px solid #00f0ff;
-                            border-radius: 12px;
-                            padding: 12px;
-                            text-align: center;
-                            box-shadow: 0 0 18px rgba(0, 240, 255, 0.35), inset 0 0 10px rgba(0, 240, 255, 0.15);
-                            margin-bottom: 15px;
-                        ">
-                            <div style="height: 4px; background: #00f0ff; border-radius: 4px; box-shadow: 0 0 8px #00f0ff; margin-bottom: 10px;"></div>
-                            <img src="{img_src}" style="width:100%; border-radius:8px; margin-bottom:8px;">
-                            <h3 style="margin:5px 0; color:#ffffff; font-family:'Montserrat';">{g_name}</h3>
-                            {note_html}
-                            <div style="color:#cbd5e1; font-size:0.95rem; margin:8px 0;">📊 <b>{g_votes}</b> Stimmen</div>
-                            {btn_html}
-                            <div style="height: 4px; background: #00f0ff; border-radius: 4px; box-shadow: 0 0 8px #00f0ff; margin-top: 12px;"></div>
-                        </div>
-                    """,
-                        unsafe_allow_html=True,
-                    )
+                        st.markdown(
+                            f"<div style='color:#cbd5e1; font-size:0.95rem; text-align:center; margin:8px 0;'>📊 <b>{g_votes}</b> Stimmen</div>",
+                            unsafe_allow_html=True,
+                        )
+
+                        if c_link:
+                            st.markdown(
+                                f"<div style='text-align:center;'><a href='{c_link}' target='_blank' class='custom-web-btn'>🌐 Website / Store</a></div>",
+                                unsafe_allow_html=True,
+                            )
+                        elif s_link:
+                            st.markdown(
+                                f"<div style='text-align:center;'><a href='{s_link}' target='_blank' class='steam-btn'>🛒 Steam Store</a></div>",
+                                unsafe_allow_html=True,
+                            )
+
+                        st.markdown(
+                            """<div style="height: 4px; background: #00f0ff; border-radius: 4px; box-shadow: 0 0 8px #00f0ff; margin-top: 12px; margin-bottom: 15px;"></div>""",
+                            unsafe_allow_html=True,
+                        )
 
         st.write("---")
         st.subheader("🎮 Spieleliste")
@@ -1041,7 +1044,11 @@ if menu == "🎮 Hauptseite":
             winner_counts = {}
             for entry in history:
                 for winner in entry.get("winners", []):
-                    winner_counts[winner] = winner_counts.get(winner, 0) + 1
+                    # KORREKTUR: BEREINIGUNG DES OVERRIDE TGS FÜR STATISTIK
+                    clean_w_name = winner.replace(" *(Admin Override)*", "")
+                    winner_counts[clean_w_name] = (
+                        winner_counts.get(clean_w_name, 0) + 1
+                    )
 
             total_weeks = len(history)
 
@@ -1124,7 +1131,6 @@ elif menu == "⚙️ Admin-Bereich":
             ]
         )
 
-        # TAB 1: SPIELE VERWALTEN (INCL. NOTIZEN/KOMMENTARE)
         with tab_adm_games:
             st.subheader(
                 "🎮 Spiele verwalten, Bilder, Links & Notizen anpassen"
@@ -1265,7 +1271,6 @@ elif menu == "⚙️ Admin-Bereich":
                     unsafe_allow_html=True,
                 )
 
-        # TAB 2: SPIELER VERWALTUNG
         with tab_adm_players:
             st.subheader("👥 Spieler-Verwaltung (Dropdown & Einstimmigkeit)")
             st.write(
@@ -1307,7 +1312,6 @@ elif menu == "⚙️ Admin-Bereich":
                         st.success(f"'{p_name}' entfernt.")
                         st.rerun()
 
-        # TAB 3: VORSCHLÄGE FREIGEBEN
         with tab_adm_suggs:
             st.subheader("📩 Ausstehende Vorschläge manuell freigeben")
             if data.get("suggestions"):
@@ -1360,7 +1364,6 @@ elif menu == "⚙️ Admin-Bereich":
             else:
                 st.info("Keine Vorschläge vorhanden.")
 
-        # TAB 4: GEWINNER OVERRIDE
         with tab_adm_win_override:
             st.subheader("👑 Gewinner manuell festlegen")
             game_options = {
@@ -1400,7 +1403,6 @@ elif menu == "⚙️ Admin-Bereich":
                     )
                     st.rerun()
 
-        # TAB 5: VOTE STATUS OVERRIDE
         with tab_adm_status_override:
             st.subheader("🔓 Manuelles Öffnen / Schließen des Votings")
             current_status = data.get("manual_status_override", "AUTO")
@@ -1453,32 +1455,42 @@ elif menu == "⚙️ Admin-Bereich":
                     st.info("Automatischer Zeitplan wiederhergestellt.")
                     st.rerun()
 
-        # TAB 6: WOCHE ABSCHLIESSEN
+        # TAB 6: WOCHE ABSCHLIESSEN (ERWEITERT UM OVERRIDE IN HISTORIE & STATISTIK)
         with tab_adm_close_week:
             st.subheader("🔄 Woche Abschließen & Historie Speichern")
             st.write(
-                "Beim Abschließen werden die Gewinner ermittelt, in der Historie gespeichert, für 1 Woche gesperrt und **das Voting wird automatisch manuell geschlossen**."
+                "Beim Abschließen werden die Gewinner ermittelt (inkl. evtl. aktiver Admin-Overrides), in der Historie gespeichert, in der Statistik erfasst, für 1 Woche gesperrt und **das Voting wird geschlossen**."
             )
 
             if st.button("Woche JETZT abschließen"):
-                winners, tie_occurred, tie_msg, _ = get_top_winners(data)
+                winners, tie_occurred, tie_msg, is_ov_active = get_top_winners(
+                    data
+                )
                 winner_ids = [w["id"] for w in winners]
-                winner_names = [w["name"] for w in winners]
 
+                # Richtiges Speichern für Historie
+                winner_names_history = []
                 voters_map = {}
-                for w_name in winner_names:
-                    voters_map[w_name] = []
-                    w_id = [
-                        g["id"] for g in data["games"] if g["name"] == w_name
-                    ][0]
+
+                for w in winners:
+                    w_name = w["name"]
+                    w_name_recorded = (
+                        f"{w_name} *(Admin Override)*"
+                        if is_ov_active
+                        else w_name
+                    )
+                    winner_names_history.append(w_name_recorded)
+
+                    voters_map[w_name_recorded] = []
+                    w_id = w["id"]
                     for user, voted_g_ids in data["voted_users"].items():
                         if w_id in voted_g_ids:
-                            voters_map[w_name].append(user)
+                            voters_map[w_name_recorded].append(user)
 
                 history_entry = {
                     "date": get_now().strftime("%d.%m.%Y"),
                     "kw": get_now().isocalendar()[1],
-                    "winners": winner_names,
+                    "winners": winner_names_history,
                     "voters": voters_map,
                 }
                 data["weekly_winner_history"].append(history_entry)
@@ -1495,12 +1507,13 @@ elif menu == "⚙️ Admin-Bereich":
                     )
 
                 data["last_winner_ids"] = winner_ids
+                data["override_winner_ids"] = []
                 data["voted_users"] = {}
                 data["manual_status_override"] = "CLOSED"
                 data["admin_status_logs"].append(
                     {
                         "timestamp": get_now().strftime("%Y-%m-%d %H:%M:%S"),
-                        "action": "Woche abgeschlossen -> Voting AUTOMATISCH MANUELL GESCHLOSSEN",
+                        "action": f"Woche abgeschlossen -> Gewinner: {', '.join(winner_names_history)}",
                     }
                 )
 
@@ -1509,11 +1522,10 @@ elif menu == "⚙️ Admin-Bereich":
 
                 save_data(data)
                 st.success(
-                    "Woche abgeschlossen! Gewinner gesperrt & Voting auf MANUELL GESCHLOSSEN gesetzt."
+                    "Woche abgeschlossen! Gewinner in Historie & Statistik erfasst, gesperrt & Voting auf GESCHLOSSEN gesetzt."
                 )
                 st.rerun()
 
-        # TAB 7: LOGS & INDEX
         with tab_adm_logs:
             st.subheader("📋 Registrierter Voting-Index")
             if data["vote_history"]:
@@ -1532,7 +1544,6 @@ elif menu == "⚙️ Admin-Bereich":
             else:
                 st.caption("Keine Status-Übersteuerungen vorhanden.")
 
-        # TAB 8: BACKUP & RECOVERY (GANZ HINTEN)
         with tab_adm_backup:
             st.subheader("💾 Manuelles Daten-Backup & Wiederherstellung")
             col_bk1, col_bk2 = st.columns(2)
