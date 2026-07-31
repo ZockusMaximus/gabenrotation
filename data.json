@@ -78,17 +78,6 @@
             "note": ""
         },
         {
-            "id": 9,
-            "name": "Tabletop Simulator",
-            "votes": 0,
-            "locked": false,
-            "approved": true,
-            "image_url": "https://cdn.akamai.steamstatic.com/steam/apps/286160/header.jpg",
-            "store_url": "https://store.steampowered.com/app/286160/",
-            "custom_store_url": "",
-            "note": ""
-        },
-        {
             "id": 10,
             "name": "OpenFront",
             "votes": 0,
