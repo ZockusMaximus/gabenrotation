@@ -14,7 +14,7 @@
         {
             "id": 2,
             "name": "Team Fortress 2",
-            "votes": 1,
+            "votes": 2,
             "locked": false,
             "approved": true,
             "image_url": "https://cdn.akamai.steamstatic.com/steam/apps/440/header.jpg",
@@ -36,7 +36,7 @@
         {
             "id": 6,
             "name": "Repo",
-            "votes": 2,
+            "votes": 3,
             "locked": false,
             "approved": true,
             "image_url": "https://cdn.akamai.steamstatic.com/steam/apps/3241660/header.jpg",
@@ -47,7 +47,7 @@
         {
             "id": 7,
             "name": "MECCHA CHAMELEON",
-            "votes": 2,
+            "votes": 3,
             "locked": false,
             "approved": true,
             "image_url": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/4704690/163e2a742e5fb8e1f5d1e3a890da98f04ab809d4/header.jpg?t=1785107783",
@@ -62,6 +62,11 @@
             7
         ],
         "stefan": [
+            2,
+            6,
+            7
+        ],
+        "marcel": [
             2,
             6,
             7
@@ -153,6 +158,12 @@
             "kw": 31,
             "user": "Alexander",
             "voted_games_count": 2
+        },
+        {
+            "timestamp": "2026-08-01 01:18:03",
+            "kw": 31,
+            "user": "Marcel",
+            "voted_games_count": 3
         }
     ],
     "randomizer_logs": [],
