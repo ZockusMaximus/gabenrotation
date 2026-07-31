@@ -3,6 +3,7 @@ import json
 import os
 import random
 from zoneinfo import ZoneInfo
+import requests
 import streamlit as st
 
 # Auto-Refresh Versuchen für den Live-Timer
@@ -16,7 +17,9 @@ except ImportError:
 DATA_FILE = "data.json"
 ADMIN_PASSWORD = "zm1234"
 GERMANY_TZ = ZoneInfo("Europe/Berlin")
-DEFAULT_IMAGE = "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&q=80"
+DEFAULT_IMAGE = (
+    "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&q=80"
+)
 
 # VORGEGEBENE SPIELERLISTE FÜR DAS DROPDOWN
 ALLOWED_USERS = ["Sascha", "Alexander", "Victor", "Marcel", "Jan", "Stefan"]
@@ -41,9 +44,47 @@ def get_next_game_night():
             days_ahead = 7
 
     next_friday = now + timedelta(days=days_ahead)
-    return next_friday.replace(
-        hour=20, minute=0, second=0, microsecond=0
-    )
+    return next_friday.replace(hour=20, minute=0, second=0, microsecond=0)
+
+
+# --- OPTION 2: GITHUB AUTOMATISCHE SYNC FUNKTION ---
+def push_to_github(data_content):
+    """Speichert die data.json automatisch direkt in das GitHub Repository."""
+    try:
+        # Secrets prüfen
+        token = st.secrets.get("GITHUB_TOKEN")
+        repo = st.secrets.get("GITHUB_REPO")
+        file_path = st.secrets.get("GITHUB_FILE_PATH", "data.json")
+
+        if not token or not repo:
+            return  # Falls Secrets nicht konfiguriert sind, überspringen
+
+        url = f"https://api.github.com/repos/{repo}/contents/{file_path}"
+        headers = {
+            "Authorization": f"token {token}",
+            "Accept": "application/vnd.github.v3+json",
+        }
+
+        # 1. Aktuellen SHA der Datei abrufen (erforderlich für Updates)
+        get_res = requests.get(url, headers=headers, timeout=5)
+        sha = get_res.json().get("sha") if get_res.status_code == 200 else None
+
+        # 2. Datei codieren & hochladen
+        import base64
+
+        json_str = json.dumps(data_content, ensure_ascii=False, indent=4)
+        content_b64 = base64.b64encode(json_str.encode("utf-8")).decode("utf-8")
+
+        payload = {
+            "message": "Auto-update data.json via Streamlit Voting App",
+            "content": content_b64,
+        }
+        if sha:
+            payload["sha"] = sha
+
+        requests.put(url, headers=headers, json=payload, timeout=5)
+    except Exception:
+        pass  # Wenn der Sync fehlschlägt, läuft die App ohne Absturz lokal weiter
 
 
 # --- DATENBANK FUNKTIONEN ---
@@ -170,8 +211,11 @@ def load_data():
 
 
 def save_data(data):
+    # Local speichern
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
+    # Option 2: Automatisch zu GitHub pushen
+    push_to_github(data)
 
 
 # --- ZEIT & SCHLIESS-LOGIK ---
@@ -281,7 +325,6 @@ st.markdown(
         font-family: 'Rajdhani', sans-serif;
     }
 
-    /* Vaporwave Banner */
     .brand-banner {
         background: linear-gradient(135deg, #ff007f 0%, #7928ca 50%, #00f0ff 100%);
         border: 2px solid #00f0ff;
@@ -426,7 +469,7 @@ if menu == "🎮 Abstimmung":
 
     if is_manual_override:
         st.markdown(
-            f'<div class="status-card closed">⚠️ HINWEIS: Das Voting wurde vom Admin MANUELL {"GEÖFFNET" if is_open else "GESCHLISTEN"}!</div>',
+            f'<div class="status-card closed">⚠️ HINWEIS: Das Voting wurde vom Admin MANUELL {"GEÖFFNET" if is_open else "GESCHLOSSEN"}!</div>',
             unsafe_allow_html=True,
         )
 
@@ -505,7 +548,6 @@ if menu == "🎮 Abstimmung":
 
         st.subheader("🎮 Spieleliste")
 
-        # FILTERN DER NAMEN FÜR DAS DROPDOWN (NUR NOCH NICHT GEVOTETE SPIELER ANZEIGEN)
         already_voted_users = [
             u.lower() for u in data.get("voted_users", {}).keys()
         ]
@@ -633,7 +675,7 @@ elif menu == "⚙️ Admin-Bereich":
     else:
         st.success("Erfolgreich eingeloggt!")
 
-        tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(
+        tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs(
             [
                 "🔓 Vote Status Override",
                 "📩 Vorschläge freigeben",
@@ -641,6 +683,7 @@ elif menu == "⚙️ Admin-Bereich":
                 "👑 Gewinner Override",
                 "🔄 Woche Abschließen",
                 "🎮 Spiele Verwalten",
+                "💾 Backup & Recovery",  # OPTION 3: MANUELLES BACKUP
             ]
         )
 
@@ -674,7 +717,7 @@ elif menu == "⚙️ Admin-Bereich":
                             "timestamp": get_now().strftime(
                                 "%Y-%m-%d %H:%M:%S"
                             ),
-                            "action": "Voting MANUELL GESCHLISTEN",
+                            "action": "Voting MANUELL GESCHLOSSEN",
                         }
                     )
                     save_data(data)
@@ -836,7 +879,7 @@ elif menu == "⚙️ Admin-Bereich":
                 data["admin_status_logs"].append(
                     {
                         "timestamp": get_now().strftime("%Y-%m-%d %H:%M:%S"),
-                        "action": "Woche abgeschlossen -> Voting AUTOMATISCH MANUELL GESCHLISTEN",
+                        "action": "Woche abgeschlossen -> Voting AUTOMATISCH MANUELL GESCHLOSSEN",
                     }
                 )
 
@@ -845,7 +888,7 @@ elif menu == "⚙️ Admin-Bereich":
 
                 save_data(data)
                 st.success(
-                    "Woche abgeschlossen! Gewinner gesperrt & Voting auf MANUELL GESCHLISTEN gesetzt."
+                    "Woche abgeschlossen! Gewinner gesperrt & Voting auf MANUELL GESCHLOSSEN gesetzt."
                 )
                 st.rerun()
 
@@ -941,3 +984,39 @@ elif menu == "⚙️ Admin-Bereich":
                     '<hr style="border-color:#2a244d; margin:8px 0;">',
                     unsafe_allow_html=True,
                 )
+
+        # TAB 7: OPTION 3 - MANUELLES BACKUP / RESTORE
+        with tab7:
+            st.subheader("💾 Manuelles Daten-Backup & Wiederherstellung")
+            st.write(
+                "Hier kannst du deinen aktuellen Stand als Datei herunterladen oder ein altes Backup hochladen."
+            )
+
+            col_bk1, col_bk2 = st.columns(2)
+
+            with col_bk1:
+                st.markdown("### 📥 Backup Herunterladen")
+                json_data = json.dumps(data, ensure_ascii=False, indent=4)
+                st.download_button(
+                    label="💾 data.json herunterladen",
+                    data=json_data,
+                    file_name=f"data_backup_{get_now().strftime('%Y%m%d_%H%M%S')}.json",
+                    mime="application/json",
+                )
+
+            with col_bk2:
+                st.markdown("### 📤 Backup Wiederherstellen")
+                uploaded_file = st.file_uploader(
+                    "Lade eine data.json hoch:", type=["json"]
+                )
+                if uploaded_file is not None:
+                    try:
+                        restored_data = json.load(uploaded_file)
+                        if st.button("⚠️ Backup JETZT einspielen"):
+                            save_data(restored_data)
+                            st.success(
+                                "Daten erfolgreich wiederhergestellt!"
+                            )
+                            st.rerun()
+                    except Exception as e:
+                        st.error(f"Fehler beim Lesen der Datei: {e}")
