@@ -144,7 +144,8 @@
             "custom_store_url": "",
             "note": "",
             "reason": "Weil mega geil",
-            "voters": []
+            "voters": [],
+            "author": ""
         }
     ],
     "manual_status_override": "AUTO",
