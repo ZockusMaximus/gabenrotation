@@ -98,7 +98,9 @@
             "voters": [
                 "Victor"
             ],
-            "against_voters": []
+            "against_voters": [
+                "Alexander"
+            ]
         }
     ],
     "manual_status_override": "AUTO",
