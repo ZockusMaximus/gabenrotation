@@ -130,5 +130,6 @@
     "override_winner_ids": [
         1,
         5
-    ]
+    ],
+    "last_reset_kw": 0
 }
