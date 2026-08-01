@@ -14,7 +14,7 @@
         {
             "id": 2,
             "name": "Team Fortress 2",
-            "votes": 3,
+            "votes": 2,
             "locked": false,
             "approved": true,
             "image_url": "https://cdn.akamai.steamstatic.com/steam/apps/440/header.jpg",
@@ -58,7 +58,7 @@
         {
             "id": 8,
             "name": "Pummel Party",
-            "votes": 0,
+            "votes": 1,
             "locked": false,
             "approved": true,
             "image_url": "https://cdn.akamai.steamstatic.com/steam/apps/880940/header.jpg",
@@ -107,8 +107,8 @@
             7
         ],
         "sascha": [
-            2,
-            7
+            7,
+            8
         ]
     },
     "last_winner_ids": [],
@@ -227,6 +227,12 @@
             "kw": 31,
             "user": "Stefan",
             "voted_games_count": 5
+        },
+        {
+            "timestamp": "2026-08-01 02:57:48",
+            "kw": 31,
+            "user": "Sascha",
+            "voted_games_count": 2
         }
     ],
     "randomizer_logs": [],
