@@ -163,7 +163,9 @@
                 "Victor",
                 "Stefan"
             ],
-            "against_voters": []
+            "against_voters": [
+                "Sascha"
+            ]
         },
         {
             "id": 4,
