@@ -865,14 +865,15 @@ if menu == "🎮 Hauptseite":
                 st.success(f"Votes von {user_name} erfolgreich gespeichert ({len(selected_game_ids)} Spiele ausgewählt)!")
                 st.rerun()
 
-    # TAB 2: SPIELVORSCHLÄGE & BANNS MIT MEHRFACH-FÄHIGKEIT
+    # TAB 2: SPIELVORSCHLÄGE & BANNS MIT DYNAMISCHER MEHRHEIT
     with tab_suggestions:
         player_list = data.get("players", DEFAULT_USERS)
-        total_players_needed = len(player_list)
+        # DYNAMISCHE MEHRHEIT (MEHR ALS 50% DER SPIELER)
+        needed_votes = (len(player_list) // 2) + 1
 
         st.subheader("💡 Spielvorschläge")
         st.write(
-            f"Schlagt hier neue Spiele vor! Sobald **ALLE {total_players_needed} Spieler einstimmig** dafür gestimmt haben, wandert das Spiel **automatisch in die Haupt-Spieleliste**!"
+            f"Schlagt hier neue Spiele vor! Sobald die **Mehrheit ({needed_votes} von {len(player_list)} Spielern)** dafür gestimmt hat, wandert das Spiel **automatisch in die Haupt-Spieleliste**!"
         )
 
         with st.expander("➕ Neues Spiel vorschlagen", expanded=False):
@@ -1016,7 +1017,7 @@ if menu == "🎮 Hauptseite":
                         )
 
                     st.caption(
-                        f"👍 **{len(voters_for)} / {total_players_needed}** Dafür | 👎 **{len(voters_against)}** Dagegen"
+                        f"👍 **{len(voters_for)} / {needed_votes}** Stimmen für Mehrheit | 👎 **{len(voters_against)}** Dagegen"
                     )
                     if voters_for:
                         st.write(f"Dafür: *{', '.join(voters_for)}*")
@@ -1036,10 +1037,8 @@ if menu == "🎮 Hauptseite":
                             if s_user_name not in voters_for:
                                 voters_for.append(s_user_name)
 
-                            current_voters_lower = [v.lower() for v in voters_for]
-                            all_players_lower = [p.lower() for p in player_list]
-
-                            if all(p in current_voters_lower for p in all_players_lower):
+                            # DYNAMISCHE MEHRHEITS-PRÜFUNG
+                            if len(voters_for) >= needed_votes:
                                 new_g_id = max([g["id"] for g in data["games"]], default=0) + 1
                                 data["games"].append(
                                     {
@@ -1057,7 +1056,7 @@ if menu == "🎮 Hauptseite":
                                 data["suggestions"].pop(s_idx)
                                 save_data(data)
                                 st.balloons()
-                                st.success(f"🎉 EINSTIMMIG! '{sugg['name']}' wurde in die Hauptliste aufgenommen!")
+                                st.success(f"🎉 MEHRHEIT ERREICHT! '{sugg['name']}' wurde in die Hauptliste aufgenommen!")
                                 st.rerun()
                             else:
                                 save_data(data)
@@ -1089,7 +1088,7 @@ if menu == "🎮 Hauptseite":
         st.subheader("🚫 Spiele aus dem Voting verbannen (Bannen)")
         st.write(
             f"Hier könnt ihr dafür stimmen, ein Spiel komplett aus der Hauptliste zu entfernen. "
-            f"Wenn **ALLE {total_players_needed} Spieler einstimmig** bannen, wird das Spiel **automatisch gelöscht**!"
+            f"Wenn die **Mehrheit ({needed_votes} von {len(player_list)} Spielern)** dafür stimmt, wird das Spiel **automatisch gelöscht**!"
         )
 
         with st.expander("➕ Spiel zum Bannen vorschlagen", expanded=False):
@@ -1169,7 +1168,7 @@ if menu == "🎮 Hauptseite":
                         )
 
                     st.caption(
-                        f"👍 **{len(ban_voters_for)} / {total_players_needed}** Für Bann | 👎 **{len(ban_voters_against)}** Gegen Bann"
+                        f"👍 **{len(ban_voters_for)} / {needed_votes}** Für Bann (Mehrheit) | 👎 **{len(ban_voters_against)}** Gegen Bann"
                     )
                     if ban_voters_for:
                         st.write(f"Für Bann: *{', '.join(ban_voters_for)}*")
@@ -1189,10 +1188,8 @@ if menu == "🎮 Hauptseite":
                             if s_user_name not in ban_voters_for:
                                 ban_voters_for.append(s_user_name)
 
-                            current_ban_voters = [v.lower() for v in ban_voters_for]
-                            all_players_lower = [p.lower() for p in player_list]
-
-                            if all(p in current_ban_voters for p in all_players_lower):
+                            # DYNAMISCHE MEHRHEITS-PRÜFUNG FÜR BANN
+                            if len(ban_voters_for) >= needed_votes:
                                 data["games"] = [
                                     g
                                     for g in data["games"]
@@ -1201,7 +1198,7 @@ if menu == "🎮 Hauptseite":
                                 data["ban_requests"].pop(b_idx)
                                 save_data(data)
                                 st.warning(
-                                    f"🚫 EINSTIMMIG GEBANNT! '{ban['name']}' wurde aus der Spieleliste entfernt!"
+                                    f"🚫 MEHRHEIT ERREICHT! '{ban['name']}' wurde gebannt und aus der Liste entfernt!"
                                 )
                                 st.rerun()
                             else:
