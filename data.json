@@ -139,8 +139,8 @@
             "image_url": "https://cdn.akamai.steamstatic.com/steam/apps/1172620/header.jpg",
             "store_url": "https://store.steampowered.com/app/1172620/",
             "custom_store_url": "",
-            "note": "",
-            "reason": "",
+            "note": "Custom Lobby bis zu 24 Spieler",
+            "reason": "Gibt mittlerweile ein Custom Lobby Modus im Game womit man im PVE mit 24 Spielern zocken kann.",
             "voters": [
                 "Victor",
                 "Stefan"
