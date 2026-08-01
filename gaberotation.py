@@ -1557,9 +1557,9 @@ elif menu == "⚙️ Admin-Bereich":
                             st.success(f"'{p_name}' entfernt.")
                             st.rerun()
 
-        # TAB 3: VORSCHLÄGE & BANNS FREIGEBEN
+        # TAB 3: VORSCHLÄGE & BANNS BEARBEITEN & FREIGEBEN
         with tab_adm_suggs:
-            st.subheader("📩 Ausstehende Vorschläge & Banns verwalten")
+            st.subheader("📩 Ausstehende Vorschläge & Banns bearbeiten")
 
             st.markdown("### 💡 Spielvorschläge")
             if data.get("suggestions"):
@@ -1615,6 +1615,50 @@ elif menu == "⚙️ Admin-Bereich":
                             save_data(data)
                             st.info(f"'{sugg['name']}' abgelehnt.")
                             st.rerun()
+
+                    # VOLLSTÄNDIGER BEARBEITUNGS-EXPANDER FÜR SPELVORSCHLÄGE
+                    with st.expander(f"✏️ Vorschlag '{sugg['name']}' vollständig bearbeiten"):
+                        e_col1, e_col2 = st.columns(2)
+                        with e_col1:
+                            edit_sugg_name = st.text_input("Spielname:", value=sugg["name"], key=f"edit_s_name_{sugg['id']}")
+                            edit_sugg_author = st.selectbox("Ersteller:", options=data.get("players", DEFAULT_USERS), index=data.get("players", DEFAULT_USERS).index(sugg["author"]) if sugg.get("author") in data.get("players", DEFAULT_USERS) else 0, key=f"edit_s_auth_{sugg['id']}")
+                            edit_sugg_note = st.text_input("Notiz / Kommentar:", value=sugg.get("note", ""), key=f"edit_s_note_{sugg['id']}")
+                        with e_col2:
+                            edit_sugg_img = st.text_input("Cover Bild-URL:", value=sugg.get("image_url", ""), key=f"edit_s_img_{sugg['id']}")
+                            edit_sugg_link = st.text_input("Website / Store Link:", value=sugg.get("custom_store_url", ""), key=f"edit_s_link_{sugg['id']}")
+                            edit_sugg_reason = st.text_area("Begründung:", value=sugg.get("reason", ""), key=f"edit_s_reason_{sugg['id']}")
+
+                        st.write("**Stimmen verwalten:**")
+                        ev_col1, ev_col2 = st.columns(2)
+                        with ev_col1:
+                            edit_sugg_voters_for = st.multiselect(
+                                "Stimmen DAFÜR 👍:",
+                                options=data.get("players", DEFAULT_USERS),
+                                default=[v for v in sugg.get("voters", []) if v in data.get("players", DEFAULT_USERS)],
+                                key=f"edit_s_vfor_{sugg['id']}"
+                            )
+                        with ev_col2:
+                            edit_sugg_voters_against = st.multiselect(
+                                "Stimmen DAGEGEN 👎:",
+                                options=data.get("players", DEFAULT_USERS),
+                                default=[v for v in sugg.get("against_voters", []) if v in data.get("players", DEFAULT_USERS)],
+                                key=f"edit_s_vagainst_{sugg['id']}"
+                            )
+
+                        if st.button("💾 Vorschlag-Änderungen speichern", key=f"save_edit_sugg_{sugg['id']}"):
+                            sugg["name"] = edit_sugg_name.strip()
+                            sugg["author"] = edit_sugg_author
+                            sugg["note"] = edit_sugg_note.strip()
+                            sugg["image_url"] = edit_sugg_img.strip()
+                            sugg["custom_store_url"] = edit_sugg_link.strip()
+                            sugg["reason"] = edit_sugg_reason.strip()
+                            sugg["voters"] = edit_sugg_voters_for
+                            sugg["against_voters"] = edit_sugg_voters_against
+                            save_data(data)
+                            st.success(f"Vorschlag '{sugg['name']}' erfolgreich aktualisiert!")
+                            st.rerun()
+
+                    st.markdown('<hr style="border-color:#2a244d; margin:8px 0;">', unsafe_allow_html=True)
             else:
                 st.info("Keine Vorschläge vorhanden.")
 
@@ -1655,6 +1699,47 @@ elif menu == "⚙️ Admin-Bereich":
                             save_data(data)
                             st.info(f"Bann-Antrag für '{ban['name']}' abgelehnt.")
                             st.rerun()
+
+                    # VOLLSTÄNDIGER BEARBEITUNGS-EXPANDER FÜR BANN-ANTRÄGE
+                    with st.expander(f"✏️ Bann-Antrag für '{ban['name']}' bearbeiten"):
+                        eb_col1, eb_col2 = st.columns(2)
+                        with eb_col1:
+                            edit_ban_author = st.selectbox(
+                                "Antragsteller:",
+                                options=data.get("players", DEFAULT_USERS),
+                                index=data.get("players", DEFAULT_USERS).index(ban["author"]) if ban.get("author") in data.get("players", DEFAULT_USERS) else 0,
+                                key=f"edit_b_auth_{ban['id']}"
+                            )
+                        with eb_col2:
+                            edit_ban_reason = st.text_area("Begründung / Verteidigung:", value=ban.get("reason", ""), key=f"edit_b_reason_{ban['id']}")
+
+                        st.write("**Bann-Stimmen verwalten:**")
+                        ebv_col1, ebv_col2 = st.columns(2)
+                        with ebv_col1:
+                            edit_ban_voters_for = st.multiselect(
+                                "Stimmen FÜR BANN 🚫:",
+                                options=data.get("players", DEFAULT_USERS),
+                                default=[v for v in ban.get("voters", []) if v in data.get("players", DEFAULT_USERS)],
+                                key=f"edit_b_vfor_{ban['id']}"
+                            )
+                        with ebv_col2:
+                            edit_ban_voters_against = st.multiselect(
+                                "Stimmen GEGEN BANN 🛡️:",
+                                options=data.get("players", DEFAULT_USERS),
+                                default=[v for v in ban.get("against_voters", []) if v in data.get("players", DEFAULT_USERS)],
+                                key=f"edit_b_vagainst_{ban['id']}"
+                            )
+
+                        if st.button("💾 Bann-Antrag speichern", key=f"save_edit_ban_{ban['id']}"):
+                            ban["author"] = edit_ban_author
+                            ban["reason"] = edit_ban_reason.strip()
+                            ban["voters"] = edit_ban_voters_for
+                            ban["against_voters"] = edit_ban_voters_against
+                            save_data(data)
+                            st.success(f"Bann-Antrag für '{ban['name']}' aktualisiert!")
+                            st.rerun()
+
+                    st.markdown('<hr style="border-color:#2a244d; margin:8px 0;">', unsafe_allow_html=True)
             else:
                 st.info("Keine aktiven Bann-Anträge.")
 
