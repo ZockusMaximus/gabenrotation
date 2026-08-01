@@ -285,5 +285,16 @@
     ],
     "override_winner_ids": [],
     "last_reset_kw": 31,
-    "ban_requests": []
+    "ban_requests": [
+        {
+            "id": 1,
+            "name": "Pummel Party",
+            "author": "Stefan",
+            "reason": "Ist ein schlechtes Random-Game mit beschissener Steuerung. Lange nichts zu tun, wenn du nicht an der Reihe bist, und einfach nichts Neues. Es gibt so viel Besseres, was man in der Zeit machen könnte.\nDie hälfte der Leute pennt ein beim zocken und merken garnicht das sie dran sind.\n\nMittlerweile sind bessere Klone rausgekommen.",
+            "voters": [
+                "Stefan"
+            ],
+            "against_voters": []
+        }
+    ]
 }
