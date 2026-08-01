@@ -163,6 +163,20 @@
                 "Stefan"
             ],
             "against_voters": []
+        },
+        {
+            "id": 4,
+            "name": "SM64 COOP dx",
+            "author": "Stefan",
+            "image_url": "https://sm64coopdx.com/logo.png",
+            "store_url": "https://store.steampowered.com/search/?term=SM64%20COOP%20dx",
+            "custom_store_url": "https://sm64coopdx.com/",
+            "note": "Mario 64 Coop",
+            "reason": "Nostalgie, Spaß und zusammenarbeit. Wer mag nicht Mario 64? Diese version ist so einfach zu Starten und zu spielen es ist wirklich nur ein download und ein Klick.\nLink ist im Discord zum download!!!",
+            "voters": [
+                "Stefan"
+            ],
+            "against_voters": []
         }
     ],
     "manual_status_override": "AUTO",
