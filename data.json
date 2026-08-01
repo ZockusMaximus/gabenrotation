@@ -151,13 +151,13 @@
         },
         {
             "id": 3,
-            "name": "Divinity II",
+            "name": "Divinity: Original Sin 2",
             "author": "Victor",
             "image_url": "https://cdn.akamai.steamstatic.com/steam/apps/219780/header.jpg",
             "store_url": "https://store.steampowered.com/app/219780/",
             "custom_store_url": "",
-            "note": "",
-            "reason": "EinEin langzeit Spaß für die ganze Familie",
+            "note": "6 Player Mod",
+            "reason": "Ein langzeit Spaß für die ganze Familie!",
             "voters": [
                 "Victor",
                 "Stefan"
