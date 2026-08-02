@@ -80,7 +80,7 @@
         {
             "id": 10,
             "name": "Blood Bowl 2",
-            "votes": 2,
+            "votes": 3,
             "locked": false,
             "approved": true,
             "image_url": "https://cdn.akamai.steamstatic.com/steam/apps/236690/header.jpg",
@@ -91,7 +91,7 @@
         {
             "id": 11,
             "name": "OpenFront",
-            "votes": 1,
+            "votes": 2,
             "locked": false,
             "approved": true,
             "image_url": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/3560670/a7ac381491a4a56cb2e91e326f3ea53bb4380f41/header.jpg?t=1785166193",
@@ -103,7 +103,9 @@
     "voted_users": {
         "alexander": [
             6,
-            7
+            7,
+            10,
+            11
         ],
         "stefan": [
             2,
@@ -264,6 +266,12 @@
             "kw": 31,
             "user": "Stefan",
             "voted_games_count": 6
+        },
+        {
+            "timestamp": "2026-08-02 12:02:22",
+            "kw": 31,
+            "user": "Alexander",
+            "voted_games_count": 4
         }
     ],
     "randomizer_logs": [],
