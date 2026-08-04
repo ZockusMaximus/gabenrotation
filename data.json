@@ -69,7 +69,7 @@
         {
             "id": 9,
             "name": "Worms W.M.D",
-            "votes": 2,
+            "votes": 3,
             "locked": false,
             "approved": true,
             "image_url": "https://cdn.akamai.steamstatic.com/steam/apps/327030/header.jpg",
@@ -118,7 +118,8 @@
         "marcel": [
             2,
             6,
-            7
+            7,
+            9
         ],
         "sascha": [
             7,
@@ -271,6 +272,12 @@
             "timestamp": "2026-08-02 12:02:22",
             "kw": 31,
             "user": "Alexander",
+            "voted_games_count": 4
+        },
+        {
+            "timestamp": "2026-08-04 15:26:19",
+            "kw": 32,
+            "user": "Marcel",
             "voted_games_count": 4
         }
     ],
